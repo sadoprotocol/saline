@@ -1,0 +1,14 @@
+{
+
+  "manifest_version": 2,
+  "name": "Saline",
+  "version": "0.0.1",
+  "description": "Provides a vault for storing salts and generating keys on demand.",
+  "permissions": [
+     "storage"
+  ],
+  "browser_action": {
+    "default_title": "SALINE",
+    "default_popup": "content/saline.html"
+  }
+}

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+        
+        <!-- META -->
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <link rel='dns-prefetch' href='//s.w.org' />
+        <title>SALINE</title>
+        
+        <!-- STYLES -->
+        <link rel="stylesheet" href="../css/bootstrap.css">
+        <link rel="stylesheet" href="../fontawesome/css/all.css">
+        <link rel="stylesheet" href="../css/saline.css?v=0.0.1.2">
+        
+    </head>
+    <body class="loading" data-text="LOADING" id="main-body">
+        
+        <!--
+        <nav class="navbar navbar-expand-xl navbar-light fixed-top bg-dark">
+            <div class="container">
+                <b class="navbar-brand">
+                    ORDIT
+                </b>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-navigation-menu" aria-controls="main-navigation-menu" aria-expanded="false" aria-label="Toggle navigation">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="collapse navbar-collapse" id="main-navigation-menu">
+                    <ul id="menu-main-navigation" class="navbar-nav ms-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a href="https://ordit.io/sdk/" target="_blank" class="nav-link">LEARN MORE</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        -->
+        
+        <div class="section batter-mustache" style="background: transparent;">
+            <div class="container" style="text-align: left">
+                
+                {{#wallet}}
+                
+                <div class="card">
+                    <div class="card-header">
+                        
+                        <ul class="nav nav-tabs" id="main-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">DASHBOARD</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="sats-tab" data-bs-toggle="tab" data-bs-target="#sats" type="button" role="tab" aria-controls="sats" aria-selected="false">SATS</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="artifacts-tab" data-bs-toggle="tab" data-bs-target="#artifacts" type="button" role="tab" aria-controls="artifacts" aria-selected="false">ARTIFACTS</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="utxo-tab" data-bs-toggle="tab" data-bs-target="#utxo" type="button" role="tab" aria-controls="utxo" aria-selected="false">UTXO</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="db-tab" data-bs-toggle="tab" data-bs-target="#db" type="button" role="tab" aria-controls="db" aria-selected="false">SETTINGS</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="tab-content" id="main-tabsContent">
+                            <div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+                                
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <alert class="alert alert-block alert-info">
+                                            <strong>
+                                                BTC BALANCE: 
+                                                {{strings.balance}} 
+                                                <i class="fab fa-bitcoin"></i>
+                                            </strong>
+                                            <hr>
+                                            <small>
+                                                {{#addresses}}
+                                                <pre style="margin-bottom: -5px;">{{address}}</pre><br />
+                                                {{/addresses}}
+                                            </small>
+                                            <small>
+                                                <small class="btn-group btn-block">
+                                                    <a href="#" class="btn btn-primary btn-ordit-copy" data-content="{{#addresses}}{{address}}{{/addresses}}">
+                                                        <small>COPY</small>
+                                                    </a>
+                                                    <a href="#" class="btn btn-primary btn-ordit-qr" data-title="Address" data-content="{{#addresses}}{{address}}{{/addresses}}">
+                                                        <small>QR CODE</small>
+                                                    </a>
+                                                    <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sign-message-modal">
+                                                        <small>SIGN MESSAGE</small>
+                                                    </a>
+                                                    <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ordit-inscribe-modal">
+                                                        <small>INSCRIBE</small>
+                                                    </a>
+                                                    <a href="#" id="primary-send-button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ordit-send-modal">
+                                                        <small>SEND</small>
+                                                    </a>
+                                                </small>
+                                            </small>
+                                        </alert>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <alert class="alert alert-block alert-info">
+                                            <small>
+                                                SATOSHIS
+                                                <i class="fas fa-info-circle highlight" data-bs-toggle="tooltip" data-bs-placement="right" title="The lowest non-decimal denomination of value"></i>
+                                            </small>
+                                            <hr>
+                                            <h3 class="highlight">{{strings.counts.satoshis}}</h3>
+                                        </alert>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <alert class="alert alert-block alert-info">
+                                            <small>
+                                                CARDINALS
+                                                <i class="fas fa-info-circle highlight" data-bs-toggle="tooltip" data-bs-placement="left" title="Satoshis that are safe to spend"></i>
+                                            </small>
+                                            <hr>
+                                            <h3 class="highlight">{{strings.counts.cardinals}}</h3>
+                                        </alert>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-4">
+                                        <alert class="alert alert-block alert-info">
+                                            <small>
+                                                SATS
+                                                <i class="fas fa-info-circle highlight" data-bs-toggle="tooltip" data-bs-placement="right" title="Each transaction can hold multiple ordinals"></i>
+                                            </small>
+                                            <hr>
+                                            <h3 class="highlight">{{strings.counts.ordinals}}</h3>
+                                        </alert>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <alert class="alert alert-block alert-info">
+                                            <small>
+                                                SPENDABLES
+                                                <i class="fas fa-info-circle highlight" data-bs-toggle="tooltip" data-bs-placement="top" title="Unspent transactions that are safe to spend"></i>
+                                            </small>
+                                            <hr>
+                                            <h3 class="highlight">{{strings.counts.spendables}}</h3>
+                                        </alert>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <alert class="alert alert-block alert-info">
+                                            <small>
+                                                ARTIFACTS
+                                                <i class="fas fa-info-circle highlight" data-bs-toggle="tooltip" data-bs-placement="left" title="Each transaction can hold multiple inscriptions"></i>
+                                            </small>
+                                            <hr>
+                                            <h3 class="highlight">{{strings.counts.inscriptions}}</h3>
+                                        </alert>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                            <div class="tab-pane fade" id="sats" role="tabpanel" aria-labelledby="sats-tab">
+                                
+                                <div class="row" style="padding-left: 15px; padding-right: 15px">
+                                    
+                                    <table class="table table-dark table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Number</th>
+                                                <th>Name</th>
+                                                <th>Size</th>
+                                                <th>Rarity</th>
+                                                <th>Safe</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- {{#ordinals}} -->
+                                            <tr>
+                                                <td>
+                                                    <small>
+                                                        <pre>{{number}}</pre>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        <pre>{{name}}</pre>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        <pre>{{size}}</pre>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        <pre>{{rarity}}</pre>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        {{#safeToSpend}}
+                                                        <span class="badge bg-success">YES</span>
+                                                        {{/safeToSpend}}
+                                                        {{^safeToSpend}}
+                                                        <span class="badge bg-danger">NO</span>
+                                                        {{/safeToSpend}}
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        <a href="#" class="btn btn-sm btn-xs btn-primary btn-ordit-send-sat" data-unspent="{{unspent}}">SEND</a>
+                                                    </small>
+                                                </td>
+                                            </tr>
+                                            <!-- {{/ordinals}} -->
+                                            <!-- {{^ordinals}} -->
+                                            <tr>
+                                                <td colspan="6">
+                                                    <alert class="alert alert-block alert-info">
+                                                        <small>NO ORDINAL DATA AVAILABLE</small>
+                                                    </alert>
+                                                </td>
+                                            </tr>
+                                            <!-- {{/ordinals}} -->
+                                        </tbody>
+                                    </table>
+                                    
+                                </div>
+                                
+                            </div>
+                            <div class="tab-pane fade" id="artifacts" role="tabpanel" aria-labelledby="artifacts-tab">
+                                
+                                <div class="row batter-isotope" id="isoartifacts">
+                                {{#inscriptions}}
+                                    <div class="col-sm-4 iso-grid">
+                                        <alert class="alert alert-block alert-info">
+                                            
+                                            <small>
+                                                <pre style="text-align: center">{{sat}}</pre>
+                                            </small>
+                                            
+                                            {{#formats.image}}
+                                            <img src="{{media_content}}" class="img img-thumbnail img-responsive img-block ordit-steno-img" id="img-{{sat}}" crossorigin="anonymous" />
+                                            {{/formats.image}}
+
+                                            {{#formats.audio}}
+                                            <audio controls class="ordit-video" src="{{media_content}}" type="{{media_type}}" id="audio-{{sat}}" crossorigin="anonymous"></audio>
+                                            {{/formats.audio}}
+
+                                            {{#formats.video}}
+                                            <video controls class="ordit-video" src="{{media_content}}" type="{{media_type}}" id="video-{{sat}}" crossorigin="anonymous"></video>
+                                            {{/formats.video}}
+
+                                            {{#formats.text}}
+                                            <textarea class="form-control ordit-text" readonly="readonly" data-src="{{media_content}}" crossorigin="anonymous" loading="lazy"></textarea>
+                                            {{/formats.text}}
+                                            
+                                            <hr>
+                                            
+                                            <small>
+                                                <pre style="text-align: center">Cost: {{value}}</pre>
+                                            </small>
+                                            
+                                            <a href="#" class="btn btn-sm btn-xs btn-block btn-primary btn-ordit-send-sat" data-unspent="{{unspent}}"><small>SEND</small></a>
+                                            
+                                        </alert>
+                                    </div>
+                                {{/inscriptions}}
+                                {{^inscriptions}}
+                                    <alert class="alert alert-block alert-info">
+                                        <small>NO INSCRIPTION DATA AVAILABLE</small>
+                                    </alert>
+                                {{/inscriptions}}
+                                    
+                                </div>
+                                
+                            </div>
+                            <div class="tab-pane fade" id="utxo" role="tabpanel" aria-labelledby="utxo-tab">
+                                
+                                <div class="row" style="padding-left: 15px; padding-right: 15px">
+                                {{#addresses}}
+                                    <table class="table table-dark table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th style="max-width: 300px">TXID</th>
+                                                <th>Value</th>
+                                                <th>Safe</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- {{#unspents}} -->
+                                            <tr>
+                                                <td style="max-width: 300px">
+                                                    <small>
+                                                        <pre>{{txid}}</pre>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        <pre>{{value}}</pre>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        {{#safeToSpend}}
+                                                        <span class="badge bg-success">YES</span>
+                                                        {{/safeToSpend}}
+                                                        {{^safeToSpend}}
+                                                        <span class="badge bg-danger">NO</span>
+                                                        {{/safeToSpend}}
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        <a href="#" class="btn btn-sm btn-xs btn-primary btn-ordit-send-sat" data-unspent="{{txid}}">SEND</a>
+                                                    </small>
+                                                </td>
+                                            </tr>
+                                            <!-- {{/unspents}} -->
+                                            <!-- {{^unspents}} -->
+                                            <tr>
+                                                <td colspan="3">
+                                                    <alert class="alert alert-block alert-info">
+                                                        <small>NO UNSPENTS</small>
+                                                    </alert>
+                                                </td>
+                                            </tr>
+                                            <!-- {{/unspents}} -->
+                                        </tbody>
+                                    </table>
+                                {{/addresses}}
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="db" role="tabpanel" aria-labelledby="db-tab">
+                                <alert class="alert alert-block">
+                                    <small>Public Key: <pre>{{user.key}}</pre></small>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-sm-3"></div>
+                                        <div class="col-sm-6">
+                                            <div class="qr-holder" data-content="{{user.key}}"></div>
+                                        </div>
+                                        <div class="col-sm-3"></div>
+                                    </div>
+                                </alert>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <a href="#" class="btn btn-block btn-outline-light btn-ordit-copy" data-content="{{user.key}}">
+                                            <small>COPY KEY</small>
+                                        </a>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <a href="#" class="btn btn-block btn-outline-light btn-ordit-reset-wallet">
+                                            <small>RESET DEVICE</small>
+                                        </a>
+                                    </div>
+                                </div>
+                                <br />
+                                <a href="#" class="btn btn-block btn-outline-light btn-ordit-new-keys" data-bs-toggle="modal" data-bs-target="#regenerate-shards-modal">
+                                    <small>GENERATE NEW RECOVERY SHARDS</small>
+                                </a>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+                
+                {{/wallet}}
+                {{^wallet}}
+                
+                {{#db.setup}}
+                
+                <div class="card">
+                    <div class="card-header">
+                        
+                        <ul class="nav nav-tabs" id="main-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active state-tabs" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab" aria-controls="login" aria-selected="true">LOGIN</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link state-tabs" id="password-tab" data-bs-toggle="tab" data-bs-target="#password" type="button" role="tab" aria-controls="password" aria-selected="false">FORGOT CREDENTIALS</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link state-tabs" id="recover-tab" data-bs-toggle="tab" data-bs-target="#recover" type="button" role="tab" aria-controls="recover" aria-selected="false">RECOVER DEVICE</button>
+                            </li>
+                        </ul>
+                        
+                        <a href="#" class="btn btn-xs btn-sm pull-right btn-outline-light btn-ordit-reset-wallet" style="margin-top: -35px;">
+                            <small>RESET</small>
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="tab-content state-tabs" id="main-tabsContent">
+                            <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
+                                <alert class="alert alert-block alert-info">
+                                    <small>
+                                        <b>LOGIN TO THIS DEVICE</b>
+                                        <br>
+                                        <small>DNS RECORD ONLY REQUIRED IF NOT USING DNKEYS</small>
+                                    </small>
+                                </alert>
+                                <hr>
+                                {{{html.forms.login}}}
+                            </div>
+                            <div class="tab-pane fade" id="password" role="tabpanel" aria-labelledby="password-tab">
+                                
+                                <alert class="alert alert-block alert-info">
+                                    <small>
+                                        <b>EXTRACT CREDENTIALS FROM RECOVERY SHARDS</b>
+                                        {{#db.shards.user}}
+                                        <hr>
+                                        <small>ONLY ONE SHARD IS REQUIRED</small>
+                                        {{/db.shards.user}}
+                                        {{^db.shards.user}}
+                                        <hr>
+                                        <small>BOTH SHARDS ARE REQUIRED</small>
+                                        {{/db.shards.user}}
+                                    </small>
+                                </alert>
+                                <hr>
+                                {{{html.forms.lost}}}
+                                
+                            </div>
+                            <div class="tab-pane fade" id="recover" role="tabpanel" aria-labelledby="recover-tab">
+                                
+                                <alert class="alert alert-block alert-info">
+                                    <small>
+                                        <b>RECOVER ACCOUNTS FROM ANOTHER DEVICE</b>
+                                    </small>
+                                </alert>
+                                
+                                {{{html.forms.recover}}}
+                                
+                            </div>
+                        </div>
+                            
+                    </div>
+                </div>
+                
+                {{/db.setup}}
+                {{^db.setup}}
+                
+                {{#db.pending}}
+                
+                {{{form}}}
+                
+                {{/db.pending}}
+                {{^db.pending}}
+                
+                <div class="card">
+                    <div class="card-header">
+                        
+                        <ul class="nav nav-tabs" id="main-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active state-tabs" id="setup-tab" data-bs-toggle="tab" data-bs-target="#setup" type="button" role="tab" aria-controls="setup" aria-selected="true">SETUP</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link state-tabs" id="password-tab" data-bs-toggle="tab" data-bs-target="#password" type="button" role="tab" aria-controls="password" aria-selected="false">FORGOT PASSWORD</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link state-tabs" id="recover-tab" data-bs-toggle="tab" data-bs-target="#recover" type="button" role="tab" aria-controls="recover" aria-selected="false">RECOVER DEVICE</button>
+                            </li>
+                        </ul>
+                        
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="tab-content state-tabs" id="main-tabsContent">
+                            <div class="tab-pane fade show active" id="setup" role="tabpanel" aria-labelledby="setup-tab">
+                                
+                                <alert class="alert alert-block alert-info">
+                                    <small>
+                                        <b>YOUR CREDENTIALS WILL ENCRYPT TWO RANDOM SALTS</b>
+                                        <br />
+                                        <small>ACCESSING DNS RECORDS REQUIRED TO STORE ENCRYPTED PERSONAL SALT</small>
+                                    </small>
+                                </alert>
+                                
+                                {{{html.forms.setup}}}
+                                
+                            </div>
+                            <div class="tab-pane fade" id="password" role="tabpanel" aria-labelledby="password-tab">
+                                
+                                <alert class="alert alert-block alert-info">
+                                    <small>
+                                        <b>EXTRACT CREDENTIALS FROM RECOVERY SHARDS</b>
+                                        {{#db.shards.user}}
+                                        <hr>
+                                        <small>ONLY ONE SHARD IS REQUIRED</small>
+                                        {{/db.shards.user}}
+                                        {{^db.shards.user}}
+                                        <hr>
+                                        <small>BOTH SHARDS ARE REQUIRED</small>
+                                        {{/db.shards.user}}
+                                    </small>
+                                </alert>
+                                <hr>
+                                {{{html.forms.lost}}}
+                                
+                            </div>
+                            <div class="tab-pane fade" id="recover" role="tabpanel" aria-labelledby="recover-tab">
+                                
+                                <alert class="alert alert-block alert-info">
+                                    <small>
+                                        <b>RECOVER ACCOUNTS FROM ANOTHER DEVICE</b>
+                                    </small>
+                                </alert>
+                                
+                                {{{html.forms.recover}}}
+                                
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                {{/db.pending}}
+                
+                {{/db.setup}}
+                
+                {{/wallet}}
+                
+            </div>
+        </div>
+        
+        <div class="modal-wrapper batter-mustache">
+            <div class="modal fade" tabindex="-1" id="default-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Modal title</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Unknown error</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" tabindex="-1" id="regenerate-shards-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Generate New Recovery Shards</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <alert class="alert alert-block alert-info">
+                                <small>REPLACE CURRENT RECOVERY SHARDS STORED ON THIS DEVICE AS WELL AS MAKING ANY RECOVERY SHARDS YOU STORED DURING SETUP NO LONGER VALID ON THIS DEVICE</small>
+                                <hr>
+                                <strong>ADDRESSES AND BALANCES WILL BE UNAFFECTED</strong>
+                            </alert>
+                            <hr>
+                            {{{html.forms.regenerate}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal fade" tabindex="-1" id="sign-message-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Sign Message</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <alert class="alert alert-block alert-info">
+                                <small>USE PUBLIC KEY TO GENERATE LEGACY ADDRESS FOR SIGNING</small>
+                            </alert>
+                            <hr>
+                            {{{html.forms.message}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal fade" tabindex="-1" id="ordit-send-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Send</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <alert class="alert alert-block alert-info">
+                                <small>SEND ASSETS TO ANY ADDRESS ON THE NETWORK</small>
+                            </alert>
+                            <hr>
+                            {{{html.forms.send}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal fade" tabindex="-1" id="ordit-inscribe-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Inscribe</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <alert class="alert alert-block alert-info">
+                                <small>CREATE NEW INSCRIPTIONS DIRECTLY FROM YOUR WALLET</small>
+                            </alert>
+                            <hr>
+                            {{{html.forms.inscribe}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div><!-- modal mustache wrapper -->
+        
+    </body>
+    
+    <!-- UX DEPENDENCIES -->
+    <script src="../js/popper.js"></script>
+    <script src="../js/bootstrap.js"></script>
+    <script src="../js/jquery.js"></script>
+    <script src="../js/mustache.js"></script>
+    <script src="../js/marked.js"></script>
+    <script src="../js/qrcode.js"></script>
+    <script src="../js/isotope.js"></script>
+    <script src="../js/clipboard.js"></script>
+    
+    <!-- CRYPTO DEPENDENCIES -->
+    <script src="../js/webgl.js"></script>
+    <script src="../js/ecc.js"></script>
+    <script src="../js/buffer.js"></script>
+    <script src="../js/bip32.js"></script>
+    <script src="../js/bip39.js"></script>
+    <script src="../js/bitcoin-tap.js"></script>
+    <script src="../js/sats.js"></script>
+    <script src="../js/metamask.js"></script>
+    <script src="../js/sodium.js"></script>
+    <script src="../js/secrets.js"></script>
+    
+    <!-- MESSAGE SIGNING -->
+    <script src="../js/bitcoinjs-0.2.0.min.js"></script>
+    <script src="../js/bitcoinjs-message.js"></script>
+    
+    <!-- ORDIT SDK ? -->
+    <script src="../js/ordit.js"></script>
+    <script src="../js/saline.js"></script>
+    
+    
+</html>

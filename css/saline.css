@@ -1,0 +1,440 @@
+/*
+
+RESETS
+
+*/
+
+html, body,
+html body .modal,
+html body .section.below,
+html body
+{
+    background-color: #20124d;
+}
+html body
+html, body
+{
+    width: 580px;
+    min-height: 300px;
+    max-width: 580px;
+    max-height: 580px;
+    overflow-x: scroll;
+    overflow-y: hide;
+}
+html body.padded
+{
+    padding-top: 40px;
+}
+html body.loading::before
+{
+    content: "";
+    color: #FFF;
+    font-size: 1rem;
+    text-align: center;
+    line-height: 100vh;
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url(../img/stars.gif);
+    background-size: 150% 150%;
+    background-position: center;
+    z-index: 99999999;
+    opacity: 0.25;
+}
+html body.loading::after
+{
+    content: attr(data-text);
+    color: #FFF;
+    font-size: 1rem;
+    text-align: center;
+    line-height: 100vh;
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #0d0a24;
+    z-index: 9999999;
+}
+.pull-right
+{
+    float: right;
+}
+html body .img-thumbnail
+{
+    background: #000;
+    border-color: #757575;
+}
+.copy
+{
+    display: block;
+    position: relative;
+    text-align: center;
+    font-size: 75%;
+}
+a
+{
+    color: #0d6efd;
+    text-decoration: none;
+}
+a:hover
+{
+    color: #FFF;
+    text-decoration: none;
+}
+
+/*
+
+SECTIONS
+
+*/
+
+html,
+html body,
+html body .section,
+html body .container
+{
+    display: block;
+    position: relative;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+html body .card
+{
+    margin: 0 !important;
+}
+html body .card .card-body
+{
+    min-height: 515px;
+}
+html body .card,
+html body .table,
+html body .section,
+html body .container
+{
+    width: 580px !important;
+    max-width: 580px !important;
+}
+html body .table
+{
+    width: 100% !important;
+    max-width: 100% !important;
+}
+html body table.table pre
+{
+    margin: -5px 0 -8px;
+}
+
+html body alert strong i,
+html body alert small i
+{
+    font-size: 1rem;
+    margin: 0 5px;
+}
+
+/*
+
+BOOTSTRAP MODS
+
+*/
+
+html body .ordit-video,
+html body .alert-block,
+html body .btn-block,
+html body .img-block
+{
+    display: block;
+    position: relative;
+    width: 100%;
+    text-align: center;
+}
+
+html body .nav-tabs
+{
+    border-color: transparent;
+    margin-bottom: -10px;
+}
+
+html body .tab-content
+{
+    padding: 0;
+}
+html body .nav-tabs .nav-link
+{
+    padding-bottom: 1rem;
+}
+html body .btn.btn-outline-light
+{
+    opacity: 0.5;
+}
+html body .btn.btn-outline-light:hover,
+html body .btn.btn-outline-light:focus
+{
+    opacity: 0.75;
+}
+html body table.table thead tr th:last-child,
+html body table.table tbody tr td:last-child
+{
+    text-align: right;
+}
+html body .navbar-toggler i
+{
+    color: #CCC;
+}
+html body .navbar-toggler button:hover i
+{
+    color: #FFF;
+}
+
+
+/*
+
+ADVANCED RESET
+
+*/
+
+html body .card table.table alert.alert
+{
+    margin-top: 5px;
+    margin-bottom: 0;
+}
+html body .qr-holder img {
+    width: 100%;
+    height: auto;
+    background: #FFF;
+    padding: 5px;
+    border: 1px solid #EEE;
+    border-radius: 3px;
+}
+
+
+/*
+
+TABLES
+
+*/
+
+table.table {
+    text-align: center;
+}
+table.table thead tr th:first-child,
+table.table tbody tr td:first-child {
+    text-align: left;
+}
+table.table thead tr th:last-child,
+table.table tbody tr td:last-child {
+    text-align: right;
+}
+table.table tbody tr td {
+    display: table-cell;
+    vertical-align: middle;
+    line-height: 2.6rem;
+}
+html body .dataTables_wrapper .dataTables_info,
+html body .dataTables_wrapper .dataTables_paginate,
+html body .dataTables_wrapper .dataTables_length,
+html body .dataTables_wrapper .dataTables_filter 
+{
+    margin: 15px 0;
+}
+html body table.dataTable .hidden {
+    display: none;
+}
+html body .dataTables_wrapper .dataTables_length select,
+html body .dataTables_wrapper .dataTables_filter input {
+    background: #000;
+    border-color: #160a3f;
+    color: #FFF;
+}
+
+html body table.dataTable thead th, 
+html body table.dataTable thead td, 
+html body table.dataTable tfoot th, 
+html body table.dataTable tfoot td {
+    text-align: center;
+}
+html body table.dataTable thead th:first-child, 
+html body table.dataTable thead td:first-child, 
+html body table.dataTable tfoot th:first-child, 
+html body table.dataTable tfoot td:first-child {
+    text-align: left;
+}
+html body table.dataTable thead th:last-child, 
+html body table.dataTable thead td:last-child, 
+html body table.dataTable tfoot th:last-child, 
+html body table.dataTable tfoot td:last-child {
+    text-align: right;
+}
+
+/* YELLOW */
+html body .dataTables_wrapper .dataTables_paginate .paginate_button,
+html body .dataTables_wrapper .dataTables_paginate .paginate_button.current, 
+html body .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+html body .dataTables_wrapper .dataTables_paginate .paginate_button.current:focus
+{
+    color: #FFEE99;
+}
+html body .dataTables_wrapper .dataTables_paginate .paginate_button,
+html body .dataTables_wrapper .dataTables_paginate .paginate_button.current, 
+html body .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover
+{
+    color: #FFEE99 !important;
+}
+html body table.table-striped.dark thead tr th,
+html body table.table-striped.dark tbody tr td,
+html body .dataTables_wrapper .dataTables_info,
+html body .dataTables_wrapper .dataTables_paginate,
+html body .dataTables_wrapper .dataTables_length,
+html body .dataTables_wrapper .dataTables_filter
+{
+    color: #EEE;
+}
+
+/*
+
+COLORS
+
+*/
+
+html body .btn.btn-primary
+{
+    border-color: #757575;
+    background: #5b10ff;
+    color: #FFF;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+html body .btn.btn-primary:hover,
+html body .btn.btn-primary:focus
+{
+    background: #4716b2;
+    color: #FFF999;
+    border-color: #000;
+}
+html body .highlight
+{
+    color: #FFF999 !important;
+}
+html body alert small i.highlight
+{
+    color: #FFF !important;
+}
+html body i.fa-bitcoin
+{
+    color: #ef8e19 !important;
+}
+html body .fold h1,
+html body .section h2,
+html body .section h3,
+html body .special,
+html body .copy a.special,
+html body nav.navbar.bg-dark,
+html body nav.navbar.bg-dark.navbar-light .navbar-brand,
+html body alert.alert-info h1,
+html body alert.alert-info small
+{
+    color: #9fc5e8;
+}
+
+html body .btn.btn-outline-light:hover,
+html body .section,
+html body .form-control:disabled, 
+html body .form-control[readonly],
+html body alert.alert-info,
+html body alert.alert-danger,
+html body alert.alert-success
+{
+    background: #140b32;
+    border-color: #000;
+    color: #EEE;
+}
+html body alert.alert-danger
+{
+    border-left: 6px solid #f8d7da;
+}
+html body alert.alert-success
+{
+    border-left: 6px solid #d1e7dd;
+}
+
+html body .section
+{
+    border-color: #9fc5e8;
+}
+
+html body .nav-tabs .nav-link.active, 
+html body .nav-tabs .nav-item.show .nav-link,
+html body .modal-content,
+html body .modal-content .modal-body,
+html body .card,
+html body .card .card-body
+{
+    background: #222;
+    border-color: #000;
+    color: #FAFAFA;
+}
+
+html body .modal-content .modal-header,
+html body .card .card-header
+{
+    background: #333;
+    border-color: #000;
+    color: #FFF999;
+}
+
+html body form .form-control::file-selector-button,
+html body form .form-control
+{
+    background: #000;
+    border-color: #160a3f;
+    color: #FFF;
+}
+html body .copy a,
+html body .fold h2,
+html body .fold h3,
+html body .fold h4,
+html body .fold h5,
+html body .fold h6,
+html body .section h4,
+html body .section h5,
+html body .section h6,
+html body .fold a,
+html body .section a,
+html body .nav-tabs .nav-link,
+html body alert.alert-info strong small a,
+html body alert.alert-danger a,
+html body alert.alert-success a,
+html body .sado-markdown ul li strong code,
+html body .navbar-light .navbar-nav .nav-link:hover, 
+html body .navbar-light .navbar-nav .nav-link:focus,
+html body form .form-control::file-selector-button
+{
+    color: #FFF999;
+}
+
+html body .fold h1 b,
+html body .copy a:hover,
+html body .copy a:focus,
+html body .fold a:hover,
+html body .fold a:focus,
+html body .section a:hover,
+html body .section a:focus,
+html body .nav-tabs .nav-link:hover, 
+html body .navbar-light .navbar-nav .nav-link,
+html body .nav-tabs .nav-link:focus
+{
+    color: #FFF;
+    border-color: transparent;
+}
+html body .copy,
+html body .fold,
+html body .nav-tabs .nav-link.active, 
+html body .navbar-light .navbar-nav .nav-link.active,
+html body .nav-tabs .nav-item.show .nav-link
+{
+    color: #999;
+}
