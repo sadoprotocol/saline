@@ -7,6 +7,7 @@
 // BIP39: https://github.com/sadoprotocol/ordit.io/blob/master/js/bip39.js
 // BUFFER: https://github.com/sadoprotocol/ordit.io/blob/master/js/buffer.js
 // BITCOINJS: https://github.com/sadoprotocol/ordit.io/blob/master/js/bitcoin-tap.js
+// SATSCONNECT: https://github.com/sadoprotocol/ordit.io/blob/master/js/sats.js
 
 bitcointp.initEccLib(ecc); // bitcoinjs dependency requires ecc
 var bip32ecc = bip32.BIP32Factory(ecc); // bip32 dependency requires ecc
@@ -15,7 +16,7 @@ exports.sdk =
 {
     config:
     {
-        version: '0.0.0.11',
+        version: '0.0.0.12',
         apis:
         {
             mainnet:
@@ -109,6 +110,30 @@ exports.sdk =
                 ipfs: 'http://ipfs-gateway.ordit.io/'
             }
         }
+    },
+    collection: function(request = false, params = {})
+    {
+        return new Promise((resolve, reject) => 
+        {
+            if(typeof ordit.sdk.collections[request] == 'function')
+            {
+                ordit.sdk.collections[request](params, function(res)
+                {
+                    if(res.success)
+                    {
+                        resolve(res.data);
+                    }
+                    else
+                    {
+                        reject(res.message);
+                    }
+                });
+            }
+            else
+            {
+                reject('Invalid collection request');
+            }
+        });
     },
     collections:
     {
@@ -625,7 +650,7 @@ exports.sdk =
             }
             else
             {
-                reject('Invalid sign request');
+                reject('Invalid inscribe request');
             }
         });
     },

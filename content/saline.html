@@ -92,10 +92,10 @@
                                                         <small>QR</small>
                                                     </a>
                                                     <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sign-message-modal">
-                                                        <small>SIGN</small>
+                                                        <small>PROVENANCE</small>
                                                     </a>
                                                     <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ordit-collections-modal">
-                                                        <small>COLLECTIONS</small>
+                                                        <small>OIP-2</small>
                                                     </a>
                                                     <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ordit-inscribe-modal">
                                                         <small>INSCRIBE</small>
@@ -594,15 +594,42 @@
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title">Sign Message</h5>
+                            
+                            <ul class="nav nav-tabs" id="main-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="sign-tab" data-bs-toggle="tab" data-bs-target="#sign" type="button" role="tab" aria-controls="sign" aria-selected="true">Sign Message</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="verify-tab" data-bs-toggle="tab" data-bs-target="#verify" type="button" role="tab" aria-controls="verify" aria-selected="false">Verify Message</button>
+                                </li>
+                            </ul>
+                            
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            
                         </div>
                         <div class="modal-body">
-                            <alert class="alert alert-block alert-info">
-                                <small>USE PUBLIC KEY TO GENERATE LEGACY ADDRESS FOR SIGNING</small>
-                            </alert>
-                            <hr>
-                            {{{html.forms.message}}}
+                            
+                            <div class="tab-content" id="main-tabsContent">
+                                <div class="tab-pane fade show active" id="sign" role="tabpanel" aria-labelledby="sign-tab">
+                                    
+                                    <alert class="alert alert-block alert-info">
+                                        <small>USE PUBLIC KEY TO GENERATE LEGACY ADDRESS FOR SIGNING</small>
+                                    </alert>
+                                    <hr>
+                                    {{{html.forms.message}}}
+                                    
+                                </div>
+                                <div class="tab-pane fade" id="verify" role="tabpanel" aria-labelledby="verify-tab">
+                                    
+                                    <alert class="alert alert-block alert-info">
+                                        <small>VERIFY SIGNED MESSAGES USING PUBLIC KEYS</small>
+                                    </alert>
+                                    <hr>
+                                    {{{html.forms.verify}}}
+                                    
+                                </div>
+                            </div>
+                            
                         </div>
                     </div>
                 </div>

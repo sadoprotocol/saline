@@ -73,7 +73,7 @@ var saline =
                     catch(e){ }
                     callback(db);
                 }
-                else if(typeof chrome == 'object')
+                else if(typeof chrome == 'object' && typeof chrome.storage != 'undefined')
                 {
                     chrome.storage.local.get(function(db)
                     {
