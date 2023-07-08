@@ -159,6 +159,11 @@ html body .nav-tabs
     margin-bottom: -10px;
 }
 
+html body .modal-header .nav-tabs
+{
+    margin-bottom: -15px;
+}
+
 html body .tab-content
 {
     padding: 0;

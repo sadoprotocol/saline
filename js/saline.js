@@ -344,12 +344,41 @@ var saline =
         var message = 'form-ordit-wallet-message';
         var send = 'form-ordit-wallet-send';
         var inscribe = 'form-ordit-wallet-inscribe';
+        var collections = 'form-ordit-collection-inscription';
+        var mint = 'form-ordit-mint-inscription';
         
         var get = 'form-ordit-wallet-get';
         var lookup = 'form-ordit-wallet-lookup';
         var prepare = 'form-ordit-wallet-prepare';
         var sign = 'form-ordit-wallet-sign';
         var relay = 'form-ordit-wallet-relay';
+        
+        // Lazy load text content ...?
+        if(jQuery('textarea.ordit-text').length > 0)
+        {
+            jQuery('textarea.ordit-text').each(function(e)
+            {
+                var _this = jQuery(this);
+                var src = jQuery(this).attr('data-src');
+                fetch
+                (
+                    src, 
+                    {
+                        method: 'GET'
+                    }
+                )
+                .then(response => response.text())
+                .then(text => 
+                {
+                    jQuery(_this).val(text)
+                })
+                .catch(error => 
+                { 
+                    
+                })
+            });
+                
+        }
         
         // Track form state
         // -- For firefox extension :-(
@@ -1093,6 +1122,401 @@ var saline =
                 }
             }
         });
+        jQuery('body').on('submit', '.' + collections, function(e)
+        {
+            e.preventDefault();
+            var form = jQuery(this);
+            var cover = false;
+            
+            var title = jQuery(form).find('#' + collections + '-0').val();
+            var description = jQuery(form).find('#' + collections + '-1').val();
+            var slug = jQuery(form).find('#' + collections + '-2').val();
+            var url = jQuery(form).find('#' + collections + '-3').val();
+            var name = jQuery(form).find('#' + collections + '-4').val();
+            var email = jQuery(form).find('#' + collections + '-5').val();
+            
+            var tpublishers = jQuery(form).find('#' + collections + '-7').val();
+            var tinscriptions = jQuery(form).find('#' + collections + '-8').val();
+            
+            var username = jQuery(form).find('#' + collections + '-9').val();
+            var pin = jQuery(form).find('#' + collections + '-10').val();
+            var password = jQuery(form).find('#' + collections + '-11').val();
+            
+            var publishers = [];
+            var inscriptions = [];
+            
+            try
+            {
+                publishers = JSON.parse(tpublishers);
+                inscriptions = JSON.parse(tinscriptions);
+            }
+            catch(e){}
+            
+            try
+            {
+                cover = jQuery(form).find('#' + collections + '-6')[0].files[0];
+            }
+            catch(e){}
+            
+            if
+            (
+                pin
+                && publishers.length > 0
+                && inscriptions.length > 0
+                && username && password
+                && username != password
+            )
+            {
+                saline.loader(true, 'CONSTRUCTING');
+                ordit.sdk.dnkeys(username, function(dnkeys)
+                {   
+                    if(typeof dnkeys["saline-salt"] != 'undefined')
+                    {
+                        var dns = dnkeys["saline-salt"];
+                        
+                        async function recover()
+                        {
+                            var salt = username + '_' + pin + '_' + password;
+                            var hash = bitcointp.crypto.sha256(Buffer.from(salt), 'utf8').toString('hex');
+                            var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
+                            var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
+
+                            saline.sodium.keys(user_secret, function(user_keys)
+                            {
+                                if(user_keys)
+                                {   
+                                    saline.sodium.decrypt
+                                    (
+                                        dns,
+                                        user_keys, 
+                                        async function(decrypted_personal_salt)
+                                        {   
+                                            if(decrypted_personal_salt)
+                                            { 
+                                                var data = saline.db.db.salt;
+                                                saline.sodium.decrypt
+                                                (
+                                                    data,
+                                                    user_keys, 
+                                                    async function(decrypted_device_salt)
+                                                    {
+                                                        var ds = decrypted_device_salt;
+                                                        var ps = decrypted_personal_salt;
+                                                        var secret = ds + '_' + salt + '_' + ps + '_' + username + '_' + password;
+                                                        var hashed = bitcointp.crypto.sha256(Buffer.from(secret), 'utf8').toString('hex');
+                                                        var bip = bip39.entropyToMnemonic(Buffer.from(hashed, 'hex'), bip39.wordlists.english);
+                                                        var seed = await bip39.mnemonicToEntropy(bip).toString('hex');
+
+                                                        ordit.sdk.wallet.get
+                                                        ({
+                                                            seed: seed, 
+                                                            network: saline.db.db.defaults.network
+                                                        },  async function(wallet)
+                                                        {
+                                                            var public_key = false;
+                                                            var public_address = false;
+                                                            
+                                                            for(w = 0; w < wallet.data.addresses.length; w++)
+                                                            {
+                                                                if(wallet.data.addresses[w].format == 'taproot')
+                                                                {
+                                                                    public_key = wallet.data.keys[0].pub;
+                                                                    public_address = wallet.data.addresses[w].address;
+                                                                }
+                                                            }
+                                                            
+                                                            var prepare_collection = function(mt, mc)
+                                                            {
+                                                                var collection_options = 
+                                                                {
+                                                                    seed: seed,
+
+                                                                    title: title,
+                                                                    description: description,
+                                                                    slug: slug,
+                                                                    url: url,
+                                                                    destination: public_address,
+
+                                                                    publishers: publishers,
+                                                                    inscriptions: inscriptions,
+
+                                                                    postage: 10000,
+                                                                    creator: name,
+                                                                    email: email,
+                                                                    media_content: mc,
+                                                                    media_type: mt,
+
+                                                                    network: saline.db.db.defaults.network
+                                                                };
+                                                                ordit.sdk.collections.publish
+                                                                (
+                                                                    collection_options,  
+                                                                    function(inscription)
+                                                                {
+                                                                    if(inscription.success)
+                                                                    {
+                                                                        var txid = inscription.data.txid;
+                                                                        var results = '<alert class="alert alert-block alert-info"><small>Transaction ID:<br /><pre>' + txid + '</pre></small></alert>';
+                                                                        saline.modal('Success', results);
+                                                                    }
+                                                                    else if
+                                                                    (
+                                                                        typeof inscription.data.btc != 'undefined'
+                                                                        && typeof inscription.data.sats != 'undefined'
+                                                                        && typeof inscription.data.address != 'undefined'
+                                                                    )
+                                                                    {
+                                                                        var results = '<alert class="alert alert-block alert-info"><small style="text-transform: uppercase;">' + inscription.message + '<hr>Requires single <b>spendable</b> of ' + inscription.data.btc + ' BTC<br /><small>( ' + inscription.data.sats + ' cardinals / safe to spend sats )</small></small></alert>';
+                                                                        results+= '<div class="row"><div class="col-sm-3"></div><div class="col-sm-6"><div class="qr-holder" data-content="' + inscription.data.address + '"></div></div><div class="col-sm-3"></div></div><hr><pre>' + inscription.data.address + '</pre><div class="row"><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + inscription.data.address + '">COPY</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recover="1" data-form=".form-ordit-collection-inscription">RECOVER</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recover="0" data-form=".form-ordit-collection-inscription">RETRY</a></div></div>';
+                                                                        saline.modal('Collection Warning', results);
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        saline.modal('Collection Warning', inscription.message);
+                                                                    }
+                                                                })
+                                                            }
+                                                            
+                                                            function getBase64(file) 
+                                                            {
+                                                                var reader = new FileReader();
+                                                                reader.onload = function () 
+                                                                {
+                                                                    var data = reader.result.split(':');
+                                                                    var meta = data[1].split(';');
+                                                                    var media_type = meta[0];
+                                                                    var media_content = meta[1].split(',')[1];
+                                                                    prepare_collection(media_type, media_content);
+                                                                    
+                                                                }
+                                                                reader.onerror = function (error) 
+                                                                {
+                                                                    saline.modal('Inscribe Error', 'Unable to read file');
+                                                                };
+                                                                reader.readAsDataURL(file);
+                                                            }
+                                                            
+                                                            if(cover)
+                                                            {
+                                                                getBase64(cover);
+                                                            }
+                                                            else
+                                                            {
+                                                                prepare_collection(
+                                                                    'text/plain;charset=utf-8', 
+                                                                    'OIP2'
+                                                                );
+                                                            }
+                                                        });
+                                                    }
+                                                );
+                                            }
+                                            else
+                                            {
+                                                saline.modal('Collection Warning', 'Unable to decrypt DNS data');
+                                            }
+                                        }
+                                    );
+                                }
+                            });
+                        }
+                        recover();
+                    }
+                    else
+                    {
+                        saline.modal('Collection Warning', 'Unable to verify DNS data');
+                    }
+                });
+            }
+            else
+            {
+                if(name == password)
+                {
+                    saline.modal('Collection Warning', 'Name cannot match password');
+                }
+            }
+        });
+        jQuery('body').on('submit', '.' + mint, function(e)
+        {
+            e.preventDefault();
+            var form = jQuery(this);
+            var media = false;
+            
+            var collection = jQuery(form).find('#' + mint + '-0').val();
+            var inscription = jQuery(form).find('#' + mint + '-1').val();
+            
+            try
+            {
+                media = jQuery(form).find('#' + mint + '-2')[0].files[0];
+            }
+            catch(e){}
+            
+            var nonce = parseInt(jQuery(form).find('#' + mint + '-3').val());
+            var publisher = parseInt(jQuery(form).find('#' + mint + '-4').val());
+            var destination = jQuery(form).find('#' + mint + '-5').val();
+            
+            var username = jQuery(form).find('#' + mint + '-6').val();
+            var pin = jQuery(form).find('#' + mint + '-7').val();
+            var password = jQuery(form).find('#' + mint + '-8').val();
+            
+            if
+            (
+                pin && media && destination
+                && username && password
+                && username != password
+            )
+            {
+                saline.loader(true, 'CONSTRUCTING');
+                ordit.sdk.dnkeys(username, function(dnkeys)
+                {   
+                    if(typeof dnkeys["saline-salt"] != 'undefined')
+                    {
+                        var dns = dnkeys["saline-salt"];
+                        
+                        async function recover()
+                        {
+                            var salt = username + '_' + pin + '_' + password;
+                            var hash = bitcointp.crypto.sha256(Buffer.from(salt), 'utf8').toString('hex');
+                            var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
+                            var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
+
+                            saline.sodium.keys(user_secret, function(user_keys)
+                            {
+                                if(user_keys)
+                                {   
+                                    saline.sodium.decrypt
+                                    (
+                                        dns,
+                                        user_keys, 
+                                        async function(decrypted_personal_salt)
+                                        {   
+                                            if(decrypted_personal_salt)
+                                            { 
+                                                var data = saline.db.db.salt;
+                                                saline.sodium.decrypt
+                                                (
+                                                    data,
+                                                    user_keys, 
+                                                    async function(decrypted_device_salt)
+                                                    {
+                                                        var ds = decrypted_device_salt;
+                                                        var ps = decrypted_personal_salt;
+                                                        var secret = ds + '_' + salt + '_' + ps + '_' + username + '_' + password;
+                                                        var hashed = bitcointp.crypto.sha256(Buffer.from(secret), 'utf8').toString('hex');
+                                                        var bip = bip39.entropyToMnemonic(Buffer.from(hashed, 'hex'), bip39.wordlists.english);
+                                                        var seed = await bip39.mnemonicToEntropy(bip).toString('hex');
+
+                                                        ordit.sdk.wallet.get
+                                                        ({
+                                                            seed: seed, 
+                                                            network: saline.db.db.defaults.network
+                                                        },  async function(wallet)
+                                                        {
+                                                            var public_key = false;
+                                                            var public_address = false;
+                                                            
+                                                            for(w = 0; w < wallet.data.addresses.length; w++)
+                                                            {
+                                                                if(wallet.data.addresses[w].format == 'taproot')
+                                                                {
+                                                                    public_key = wallet.data.keys[0].pub;
+                                                                    public_address = wallet.data.addresses[w].address;
+                                                                }
+                                                            }
+                                                            
+                                                            
+                                                            var prepare_inscription = function(mt, mc)
+                                                            {
+                                                                var mint_options = 
+                                                                {
+                                                                    seed: seed,
+                                                                    collection: collection,
+                                                                    inscription: inscription,
+                                                                    nonce: nonce,
+                                                                    publisher: publisher,
+                                                                    destination: destination,
+                                                                    media_type: mt,
+                                                                    media_content: mc,
+                                                                    network: saline.db.db.defaults.network
+                                                                };
+                                                                ordit.sdk.collections.mint
+                                                                (
+                                                                    mint_options,  
+                                                                    function(inscription)
+                                                                {
+                                                                    if(inscription.success)
+                                                                    {
+                                                                        var txid = inscription.data.txid;
+                                                                        var results = '<alert class="alert alert-block alert-info"><small>Transaction ID:<br /><pre>' + txid + '</pre></small></alert>';
+                                                                        saline.modal('Success', results);
+                                                                    }
+                                                                    else if
+                                                                    (
+                                                                        typeof inscription.data.btc != 'undefined'
+                                                                        && typeof inscription.data.sats != 'undefined'
+                                                                        && typeof inscription.data.address != 'undefined'
+                                                                    )
+                                                                    {
+                                                                        var results = '<alert class="alert alert-block alert-info"><small style="text-transform: uppercase;">' + inscription.message + '<hr>Requires single <b>spendable</b> of ' + inscription.data.btc + ' BTC<br /><small>( ' + inscription.data.sats + ' cardinals / safe to spend sats )</small></small></alert>';
+                                                                        results+= '<div class="row"><div class="col-sm-3"></div><div class="col-sm-6"><div class="qr-holder" data-content="' + inscription.data.address + '"></div></div><div class="col-sm-3"></div></div><hr><pre>' + inscription.data.address + '</pre><div class="row"><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + inscription.data.address + '">COPY</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recover="1" data-form=".form-ordit-mint-inscription">RECOVER</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recover="0" data-form=".form-ordit-mint-inscription">RETRY</a></div></div>';
+                                                                        saline.modal('Mint Warning', results);
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        saline.modal('Mint Warning', inscription.message);
+                                                                    }
+                                                                })
+                                                            }
+                                                            
+                                                            function getBase64(file) 
+                                                            {
+                                                                var reader = new FileReader();
+                                                                reader.onload = function () 
+                                                                {
+                                                                    var data = reader.result.split(':');
+                                                                    var meta = data[1].split(';');
+                                                                    var media_type = meta[0];
+                                                                    var media_content = meta[1].split(',')[1];
+                                                                    prepare_inscription(media_type, media_content);
+                                                                    
+                                                                }
+                                                                reader.onerror = function (error) 
+                                                                {
+                                                                    saline.modal('Mint Error', 'Unable to read file');
+                                                                };
+                                                                reader.readAsDataURL(file);
+                                                            }
+                                                            
+                                                            getBase64(media);
+                                                        });
+                                                    }
+                                                );
+                                            }
+                                            else
+                                            {
+                                                saline.modal('Mint Warning', 'Unable to decrypt DNS data');
+                                            }
+                                        }
+                                    );
+                                }
+                            });
+                        }
+                        recover();
+                    }
+                    else
+                    {
+                        saline.modal('Mint Warning', 'Unable to verify DNS data');
+                    }
+                });
+            }
+            else
+            {
+                if(name == password)
+                {
+                    saline.modal('Mint Warning', 'Name cannot match password');
+                }
+            }
+        });
         jQuery('body').on('submit', '.' + send, function(e)
         {
             e.preventDefault();
@@ -1183,15 +1607,11 @@ var saline =
                                                             network: saline.db.db.defaults.network
                                                         };
                                                         
-                                                        console.log('send_type', send_type);
-                                                        console.log('specific_unspent', specific_unspent);
                                                         if(send_type == 'unspent')
                                                         {
                                                             psbt_options.outs[0].cardinals = 0;
                                                             psbt_options.outs[0].location = specific_unspent;
                                                         }
-
-                                                        console.log('psbt_options', psbt_options);
                                                         
                                                         ordit.sdk.psbt.get(psbt_options, function(tx)
                                                         {
@@ -1274,6 +1694,7 @@ var saline =
         {
             e.preventDefault();
             var form = jQuery(this);
+            var recovered = parseInt(jQuery(this).attr('data-recover'));
             var destination = jQuery(form).find('#' + inscribe + '-0').val();
             var file = false;
             var jmeta = jQuery(form).find('#' + inscribe + '-2').val();
@@ -1319,18 +1740,11 @@ var saline =
                             var reader = new FileReader();
                             reader.onload = function () 
                             {
-                               console.log(reader.result);
                                var data = reader.result.split(':');
-                               console.log('jmeta', jmeta);
-                               console.log('data', data);
                                var meta = data[1].split(';');
-                               console.log('meta', meta);
                                var media_type = meta[0];
-                               //var media_content = Buffer.from(meta[1].split(',')[1], 'base64').toString('hex');
                                var media_content = meta[1].split(',')[1];
-                               console.log('media_type', media_type);
-                               console.log('media_content', media_content);
-
+                               
                                async function recover()
                                {
                                     var salt = username + '_' + pin + '_' + password;
@@ -1378,8 +1792,6 @@ var saline =
                                                                     catch(e){}
                                                                 }
 
-                                                                console.log('inscription_meta', inscription_meta);
-
                                                                 ordit.sdk.inscription.address({
                                                                     seed: seed,
                                                                     media_content: media_content,
@@ -1388,7 +1800,6 @@ var saline =
                                                                     meta: inscription_meta
                                                                 },  function(commit)
                                                                 {
-                                                                    console.log('commit', commit);
 
                                                                     var postage = 10000;
 
@@ -1404,16 +1815,21 @@ var saline =
                                                                             change_address: change_address,
                                                                             fees: commit.data.fees,
                                                                             network: saline.db.db.defaults.network,
-                                                                            meta: inscription_meta
+                                                                            meta: inscription_meta,
+                                                                            recovery: recovered
                                                                         },  function(reveal)
                                                                         {
-                                                                            console.log('reveal', reveal);
 
                                                                             if(reveal.success)
                                                                             {
                                                                                 var tweaked = false;
                                                                                 //var format = saline.db.wallet.addresses[0].format;
                                                                                 //if(format == 'taproot') tweaked = true;
+                                                                                
+                                                                                if(recovered)
+                                                                                {
+                                                                                    //tweaked = true;
+                                                                                }
 
                                                                                 ordit.sdk.psbt.sign({
                                                                                     seed: seed, 
@@ -1423,7 +1839,6 @@ var saline =
                                                                                 }, 
                                                                                 function(signed)
                                                                                 {
-                                                                                    console.log('signed', signed);
 
                                                                                     if(signed.success)
                                                                                     {
@@ -1456,7 +1871,7 @@ var saline =
                                                                                 var sats = (commit.data.fees + postage);
                                                                                 var btc = parseFloat(sats / (10 ** 8));
                                                                                 var results = '<alert class="alert alert-block alert-info"><small style="text-transform: uppercase;">' + reveal.message + '<hr>Requires single <b>spendable</b> of ' + btc + ' BTC<br /><small>( ' + sats + ' cardinals / safe to spend sats )</small></small></alert>';
-                                                                                results+= '<div class="row"><div class="col-sm-3"></div><div class="col-sm-6"><div class="qr-holder" data-content="' + commit.data.address + '"></div></div><div class="col-sm-3"></div></div><hr><pre>' + commit.data.address + '</pre><div class="row"><div class="col-sm-6"><a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + commit.data.address + '">COPY ADDRESS</a></div><div class="col-sm-6"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-form=".form-ordit-wallet-inscribe">RETRY INSCRIBE</a></div></div>';
+                                                                                results+= '<div class="row"><div class="col-sm-3"></div><div class="col-sm-6"><div class="qr-holder" data-content="' + commit.data.address + '"></div></div><div class="col-sm-3"></div></div><hr><pre>' + commit.data.address + '</pre><div class="row"><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + commit.data.address + '">COPY</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recover="1" data-form=".form-ordit-wallet-inscribe">RECOVER</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recoer="0" data-form=".form-ordit-wallet-inscribe">RETRY</a></div></div>';
                                                                                 saline.modal('Inscribe Error', results);
                                                                             }
                                                                         });
@@ -1498,7 +1913,6 @@ var saline =
                                 if(res)
                                 {
                                     file = window.URL.createObjectURL(res);
-                                    console.log('file', file);
                                     getBase64(file);
                                 }
                             }
@@ -1729,6 +2143,7 @@ var saline =
                                     contents+= 'ADDRESS'
                                     if(results.data.counts.addresses > 1)
                                     {
+                                        contents+= 'ES (' + results.data.counts.addresses + ')';
                                         contents+= 'ES (' + results.data.counts.addresses + ')';
                                     }
                                     for(a = 0; a < results.data.counts.addresses; a++)
@@ -2146,11 +2561,56 @@ var saline =
     },
     buttons: function()
     {
+        jQuery('body').on('click', '.btn-oip-meta', function(e)
+        {
+            e.preventDefault();
+            var meta = [];
+            var inscription = false;
+            var id = jQuery(this).attr('data-id');
+            for(i =0 ; i < saline.db.wallet.inscriptions.length; i++)
+            {
+                if
+                (
+                    saline.db.wallet.inscriptions[i].id == id
+                    && typeof saline.db.wallet.inscriptions[i].meta == 'object'
+                )
+                {
+                    inscription = saline.db.wallet.inscriptions[i];
+                    jQuery.each(inscription.meta, function(k, v)
+                    {
+                        meta.push({
+                            index: k,
+                            value: v
+                        });
+                    });
+                }
+            }
+            if(meta.length > 0)
+            {
+                var results = '<alert class="alert alert-block alert-info">';
+                results+= '<small>OIP-1 META DATA<br />Location: <a href="#" class="btn btn-xs btn-sm btn-primary btn-ordit-copy" data-content="' + inscription.outpoint + '"><small>COPY</small></a></small><hr><small><pre>' + inscription.outpoint + '</pre></small>';
+                results+= '</alert>';
+                for(m = 0; m < meta.length; m++)
+                {
+                    results+= '<hr><alert class="alert alert-block">';
+                    results+= '<strong>' + meta[m].index + '</strong>';
+                    if(typeof meta[m].value == 'object')
+                    {
+                        results+= '<pre>' + JSON.stringify(meta[m].value) + '</pre>';
+                    }
+                    else
+                    {
+                        results+= '<pre>' + meta[m].value + '</pre>';
+                    }
+                    results+= '</alert>';
+                }
+                saline.modal('Meta Data', results);
+            }
+        });
         jQuery('body').on('click', '.btn-ordit-confirm-send', function(e)
         {
             e.preventDefault();
             var txid = jQuery(this).attr('data-txid');
-            console.log('txid', txid);
             if(txid)
             {
                 var form = jQuery('#ordit-send-modal').find('form');
@@ -2213,6 +2673,15 @@ var saline =
         {
             e.preventDefault();
             var target = jQuery(this).attr('data-form');
+            var recover = parseInt(jQuery(this).attr('data-recover'));
+            if(recover)
+            {
+                jQuery(target).attr('data-recover', '1');
+            }
+            else
+            {
+                jQuery(target).attr('data-recover', '0');
+            }
             jQuery(target).trigger('submit');
         });
         jQuery('body').on('click', '.btn-toggle-reveals', function(e)
@@ -2797,7 +3266,6 @@ var saline =
                             tx.outs[t].to = to;
                         }
                     }
-                    console.log('tx', tx);
                     
                     // Time to display confirmation screen ?
                     
@@ -3004,6 +3472,72 @@ jQuery(window).on('load', function()
                     }
                 ]
             });
+            saline.db.html.forms.collection = saline.html.forms.create({
+                css: 'form-ordit-collection-inscription',
+                fields:
+                [
+                    {
+                        type: 'text',
+                        label: 'Title',
+                        placeholder: 'The main title of collection ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Description',
+                        placeholder: 'Markdown compatible description ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Slug',
+                        placeholder: 'Optional one-word slug ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'URL',
+                        placeholder: 'Optional URL for collection ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Artist',
+                        placeholder: 'Optional name of artist ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Email',
+                        placeholder: 'Optional email address ...'
+                    },
+                    {
+                        type: 'file',
+                        label: 'Cover',
+                        placeholder: 'Collection cover ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Publishers',
+                        placeholder: 'An array of publisher addresses ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Inscriptions',
+                        placeholder: 'An array of inscription objects ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Username',
+                        placeholder: 'Provide a domain-based username ...'
+                    },
+                    {
+                        type: 'number',
+                        label: 'PIN',
+                        placeholder: 'Required to authenticate action'
+                    },
+                    {
+                        type: 'password',
+                        label: 'Password',
+                        placeholder: 'Also required for this action ...'
+                    }
+                ]
+            });
             saline.db.html.forms.send = saline.html.forms.create({
                 css: 'form-ordit-wallet-send',
                 fields:
@@ -3087,7 +3621,7 @@ jQuery(window).on('load', function()
                     placeholder: 'Also required for this action ...'
                 }
             ];
-            
+
             if(saline.db.browser == true)
             {
                 inscribe_fields[1] = 
@@ -3097,7 +3631,7 @@ jQuery(window).on('load', function()
                     placeholder: 'URL to file being inscribed ...?'
                 }
             }
-            
+
             saline.db.html.forms.inscribe = saline.html.forms.create({
                 css: 'form-ordit-wallet-inscribe',
                 fields: inscribe_fields
@@ -3176,6 +3710,82 @@ jQuery(window).on('load', function()
                                 w.data.strings = strings;
                                 saline.db.wallet = w.data;
                             }
+
+                            var collection_field = 
+                            {
+                                type: 'hidden'
+                            }
+
+                            if(typeof saline.db.wallet.collections == 'object' && saline.db.wallet.collections.length > 0)
+                            {
+                                collection_field = 
+                                {
+                                    type: 'select',
+                                    label: 'Collection',
+                                    choices: [
+                                        {
+                                            id: '',
+                                            text: '-- Select Collection --'
+                                        }
+                                    ]
+                                };
+                                for(c = 0; c < saline.db.wallet.collections.length; c++)
+                                {
+                                    collection_field.choices.push({
+                                        id: saline.db.wallet.collections[c].outpoint,
+                                        text: saline.db.wallet.collections[c].meta.title
+                                    })
+                                }
+                            }
+                            
+                            saline.db.html.forms.mint = saline.html.forms.create({
+                                css: 'form-ordit-mint-inscription',
+                                fields:
+                                [
+                                    collection_field,
+                                    {
+                                        type: 'text',
+                                        label: 'Inscription',
+                                        placeholder: 'Outpoint / location of collection ...'
+                                    },
+                                    {
+                                        type: 'file',
+                                        label: 'File',
+                                        placeholder: 'File to inscribe ...'
+                                    },
+                                    {
+                                        type: 'text',
+                                        label: 'Nonce',
+                                        placeholder: 'Unique integer less than limit ...'
+                                    },
+                                    {
+                                        type: 'text',
+                                        label: 'Publisher',
+                                        placeholder: 'Integer index for publisher array ...'
+                                    },
+                                    {
+                                        type: 'text',
+                                        label: 'Destination',
+                                        placeholder: 'Where to send the inscription ...?'
+                                    },
+                                    {
+                                        type: 'text',
+                                        label: 'Username',
+                                        placeholder: 'Provide a domain-based username ...'
+                                    },
+                                    {
+                                        type: 'number',
+                                        label: 'PIN',
+                                        placeholder: 'Required to authenticate action'
+                                    },
+                                    {
+                                        type: 'password',
+                                        label: 'Password',
+                                        placeholder: 'Also required for this action ...'
+                                    }
+                                ]
+                            });
+                            
                             saline.init();
                         });
                     }

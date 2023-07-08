@@ -89,10 +89,13 @@
                                                         <small>COPY</small>
                                                     </a>
                                                     <a href="#" class="btn btn-primary btn-ordit-qr" data-title="Address" data-content="{{#addresses}}{{address}}{{/addresses}}">
-                                                        <small>QR CODE</small>
+                                                        <small>QR</small>
                                                     </a>
                                                     <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sign-message-modal">
-                                                        <small>SIGN MESSAGE</small>
+                                                        <small>SIGN</small>
+                                                    </a>
+                                                    <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ordit-collections-modal">
+                                                        <small>COLLECTIONS</small>
                                                     </a>
                                                     <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ordit-inscribe-modal">
                                                         <small>INSCRIBE</small>
@@ -238,6 +241,20 @@
                                 <div class="row batter-isotope" id="isoartifacts">
                                 {{#inscriptions}}
                                     <div class="col-sm-4 iso-grid">
+                                        
+                                        {{#fake}}
+                                            <alert class="alert alert-block alert-danger" style="margin-bottom: -10px;">
+                                                <strong>FAKE</strong>
+                                            </alert>
+                                        {{/fake}}
+                                        {{^fake}}
+                                        {{#verified}}
+                                            <alert class="alert alert-block alert-success" style="margin-bottom: -10px;">
+                                                <strong>VERIFIED</strong>
+                                            </alert>
+                                        {{/verified}}
+                                        {{/fake}}
+                                        
                                         <alert class="alert alert-block alert-info">
                                             
                                             <small>
@@ -264,6 +281,13 @@
                                             
                                             <small>
                                                 <pre style="text-align: center">Cost: {{value}}</pre>
+                                                
+                                                {{#meta}}
+                                                <a href="#" class="btn btn-block btn-outline-light btn-sm btn-xs btn-oip-meta" data-id="{{id}}">
+                                                    META DATA
+                                                </a>
+                                                <br />
+                                                {{/meta}}
                                             </small>
                                             
                                             <a href="#" class="btn btn-sm btn-xs btn-block btn-primary btn-ordit-send-sat" data-unspent="{{unspent}}"><small>SEND</small></a>
@@ -615,6 +639,56 @@
                             </alert>
                             <hr>
                             {{{html.forms.inscribe}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal fade" tabindex="-1" id="ordit-collections-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            
+                            <ul class="nav nav-tabs" id="main-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="collection-tab" data-bs-toggle="tab" data-bs-target="#collection" type="button" role="tab" aria-controls="collection" aria-selected="true">Create Collection</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="mint-tab" data-bs-toggle="tab" data-bs-target="#mint" type="button" role="tab" aria-controls="mint" aria-selected="false">Mint from Collection</button>
+                                </li>
+                            </ul>
+                            
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            
+                            <!--
+                            <h5 class="modal-title">Collections</h5>
+                            
+                            -->
+                            
+                        </div>
+                        <div class="modal-body">
+                            
+                            <div class="tab-content" id="main-tabsContent">
+                                <div class="tab-pane fade show active" id="collection" role="tabpanel" aria-labelledby="collection-tab">
+                                    
+                                    <alert class="alert alert-block alert-info">
+                                        <small>CREATE NEW COLLECTION INSCRIPTION (OIP-2)</small>
+                                    </alert>
+                                    <hr>
+                                    {{{html.forms.collection}}}
+                                    
+                                </div>
+                                <div class="tab-pane fade" id="mint" role="tabpanel" aria-labelledby="mint-tab">
+                                    
+                                    <alert class="alert alert-block alert-info">
+                                        <small>MINT NEW INSCRIPTION (OIP-2)</small>
+                                    </alert>
+                                    <hr>
+                                    {{{html.forms.mint}}}
+                                    
+                                </div>
+                            </div>
+                            
                         </div>
                     </div>
                 </div>
