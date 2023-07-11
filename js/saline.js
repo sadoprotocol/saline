@@ -342,10 +342,13 @@ var saline =
         var recover = 'form-ordit-wallet-recover';
         var login = 'form-ordit-wallet-login';
         var message = 'form-ordit-wallet-message';
+        var verify = 'form-ordit-wallet-verify';
         var send = 'form-ordit-wallet-send';
         var inscribe = 'form-ordit-wallet-inscribe';
         var collections = 'form-ordit-collection-inscription';
         var mint = 'form-ordit-mint-inscription';
+        var sado = 'form-ordit-sado-list';
+        var settings = 'form-ordit-sado-settings';
         
         var get = 'form-ordit-wallet-get';
         var lookup = 'form-ordit-wallet-lookup';
@@ -1070,10 +1073,11 @@ var saline =
                                                             network: saline.db.db.defaults.network
                                                         }, async function(sigs)
                                                         {
+                                                            console.log('sigs', sigs);
                                                             if(sigs.success)
                                                             {
                                                                 var results = '<alert class="alert alert-block alert-info">';
-                                                                results+= '<small>ADDRESS USED FOR SIGNATURES:<pre>' + sigs.data.address + '</pre></small>';
+                                                                results+= '<small>ADDRESS USED FOR SIGNATURES:<pre>' + sigs.data.address + '</pre><hr>PUBKEY USED FOR SIGNATURES:<pre>' + sigs.data.pub + '</pre></small>';
                                                                 results+= '</alert><hr>';
                                                                 results+= '<div class="row">';
                                                                 results+= '<div class="col-sm-6">';
@@ -1119,6 +1123,121 @@ var saline =
                 if(name == password)
                 {
                     saline.modal('Message Signing Warning', 'Name cannot match password');
+                }
+            }
+        });
+        jQuery('body').on('submit', '.' + verify, function(e)
+        {
+            e.preventDefault();
+            var form = jQuery(this);
+            var pub = jQuery(form).find('#' + verify + '-0').val();
+            var msg = jQuery(form).find('#' + verify + '-1').val();
+            var sig = jQuery(form).find('#' + verify + '-2').val();
+            var username = jQuery(form).find('#' + verify + '-3').val();
+            var pin = jQuery(form).find('#' + verify + '-4').val();
+            var password = jQuery(form).find('#' + verify + '-5').val();
+            
+            if
+            (
+                msg && pin && pub && sig
+                && username && password
+                && username != password
+            )
+            {
+                ordit.sdk.dnkeys(username, function(dnkeys)
+                {   
+                    if(typeof dnkeys["saline-salt"] != 'undefined')
+                    {
+                        var dns = dnkeys["saline-salt"];
+                        
+                        async function recover()
+                        {
+                            var salt = username + '_' + pin + '_' + password;
+                            var hash = bitcointp.crypto.sha256(Buffer.from(salt), 'utf8').toString('hex');
+                            var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
+                            var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
+
+                            saline.sodium.keys(user_secret, function(user_keys)
+                            {
+                                if(user_keys)
+                                {   
+                                    saline.sodium.decrypt
+                                    (
+                                        dns,
+                                        user_keys, 
+                                        async function(decrypted_personal_salt)
+                                        {   
+                                            if(decrypted_personal_salt)
+                                            { 
+                                                var data = saline.db.db.salt;
+                                                saline.sodium.decrypt
+                                                (
+                                                    data,
+                                                    user_keys, 
+                                                    async function(decrypted_device_salt)
+                                                    {
+                                                        var ds = decrypted_device_salt;
+                                                        var ps = decrypted_personal_salt;
+                                                        var secret = ds + '_' + salt + '_' + ps + '_' + username + '_' + password;
+                                                        var hashed = bitcointp.crypto.sha256(Buffer.from(secret), 'utf8').toString('hex');
+                                                        var bip = bip39.entropyToMnemonic(Buffer.from(hashed, 'hex'), bip39.wordlists.english);
+                                                        var seed = await bip39.mnemonicToEntropy(bip).toString('hex');
+                                                        
+                                                        var verification_options = 
+                                                        {
+                                                            key: pub, 
+                                                            message: msg,
+                                                            signature: sig,
+                                                            network: saline.db.db.defaults.network
+                                                        }
+                                                        
+                                                        console.log('verification_options', verification_options);
+
+                                                        ordit.sdk.message.verify(
+                                                            verification_options, 
+                                                            async function(verified)
+                                                        {
+                                                            console.log('verified', verified);
+                                                            if(verified.success)
+                                                            {
+                                                                var results = '<alert class="alert alert-block alert-info">';
+                                                                results+= '<small>SIGNATURE VERIFIED</small>';
+                                                                results+= '</alert> ';
+                                                                saline.modal('Verified', results);
+                                                            }
+                                                            else
+                                                            {
+                                                                var results = '<alert class="alert alert-block alert-info">';
+                                                                results+= '<strong>UNABLE TO VERIFY SIGNATURE</small>';
+                                                                results+= '</alert> ';
+                                                                saline.modal('Verification Warning', verified.message);
+                                                            }
+                                                        });
+                                                    }
+                                                );
+                                            }
+                                            else
+                                            {
+                                                saline.modal('Verification Warning', 'Unable to decrypt DNS data');
+                                            }
+                                        }
+                                    );
+                                }
+                            });
+                        }
+                        recover();
+                    }
+                    else
+                    {
+                        saline.modal('Verification Warning', 'Unable to verify DNS data');
+                    }
+                });
+            }
+            else
+            {
+                if(name == password)
+                {
+                    saline.modal('Verification Warning', 'Name cannot match password');
                 }
             }
         });
@@ -1515,6 +1634,109 @@ var saline =
                 {
                     saline.modal('Mint Warning', 'Name cannot match password');
                 }
+            }
+        });
+        jQuery('body').on('submit', '.' + sado, function(e)
+        {
+            e.preventDefault();
+            var form = jQuery(this);
+            var utxo = jQuery(form).find('#' + sado + '-0').val();
+            var cardinals = parseInt(jQuery(form).find('#' + sado + '-1').val());
+            
+            var username = jQuery(form).find('#' + sado + '-2').val();
+            var pin = jQuery(form).find('#' + sado + '-3').val();
+            var password = jQuery(form).find('#' + sado + '-4').val();
+            
+            if
+            (
+                utxo && cardinals && pin
+                && username && password
+                && username != password
+            )
+            {
+                saline.loader(true, 'LISTING');
+                
+                ordit.sdk.dnkeys(username, function(dnkeys)
+                {   
+                    if(typeof dnkeys["saline-salt"] != 'undefined')
+                    {
+                        var dns = dnkeys["saline-salt"];
+                
+                        async function recover()
+                        {
+                            var salt = username + '_' + pin + '_' + password;
+                            var hash = bitcointp.crypto.sha256(Buffer.from(salt), 'utf8').toString('hex');
+                            var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
+                            var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
+
+                            saline.sodium.keys(user_secret, function(user_keys)
+                            {
+                                if(user_keys)
+                                {   
+                                    saline.sodium.decrypt
+                                    (
+                                        dns,
+                                        user_keys, 
+                                        async function(decrypted_personal_salt)
+                                        {
+                                            if(decrypted_personal_salt)
+                                            { 
+                                                var data = saline.db.db.salt;
+                                                saline.sodium.decrypt
+                                                (
+                                                    data,
+                                                    user_keys, 
+                                                    async function(decrypted_device_salt)
+                                                    {
+                                                        var ds = decrypted_device_salt;
+                                                        var ps = decrypted_personal_salt;
+                                                        var secret = ds + '_' + salt + '_' + ps + '_' + username + '_' + password;
+                                                        var hashed = bitcointp.crypto.sha256(Buffer.from(secret), 'utf8').toString('hex');
+                                                        var bip = bip39.entropyToMnemonic(Buffer.from(hashed, 'hex'), bip39.wordlists.english);
+                                                        var seed = await bip39.mnemonicToEntropy(bip).toString('hex');
+                
+                                                        ordit.sdk.sado.order({
+                                                            seed: seed,
+                                                            location: utxo,
+                                                            cardinals: cardinals,
+                                                            network: saline.db.db.defaults.network
+                                                        },  function(order)
+                                                        {
+                                                            console.log('order', order);
+                                                            if(order.success)
+                                                            {
+                                                                var txid = order.data.txid;
+                                                                var results = '<alert class="alert alert-block alert-info"><small>Transaction ID:<br /><pre>' + txid + '</pre></small></alert>';
+                                                                saline.modal('Success', results);
+                                                            }
+                                                            else
+                                                            {
+                                                                saline.modal('List Warning', order.message);
+                                                            }
+                                                        });
+                                                    }
+                                                );
+                                            }
+                                            else
+                                            {
+                                                saline.modal('List Warning', 'Unable to decrypt DNS data');
+                                            }
+                                        }
+                                    );
+                                }
+                                else
+                                {
+                                    saline.modal('List Warning', 'Unable to verify DNS data');
+                                }
+                            });
+                        }
+                        recover();
+                    }
+                    else
+                    {
+                        saline.modal('List Warning', 'Unable to verify DNS entry');
+                    }
+                });
             }
         });
         jQuery('body').on('submit', '.' + send, function(e)
@@ -2607,6 +2829,34 @@ var saline =
                 saline.modal('Meta Data', results);
             }
         });
+        jQuery('body').on('click', '.btn-send-to-sado', function(e)
+        {
+            e.preventDefault();
+            var utxo = jQuery(this).attr('data-txid');
+            if(utxo)
+            {
+                var form = jQuery('#ordit-sado-modal').find('form');
+                
+                jQuery(form).find('#form-ordit-sado-list-0').val(utxo);
+                
+                var id = 'ordit-sado-modal';
+                var el = document.getElementById(id);
+                var modal = new bootstrap.Modal(el, {
+                    keyboard: true,
+                    backdrop: true,
+                    focus: false
+                });
+                el.addEventListener('hidden.bs.modal', function (event)
+                {
+
+                });
+                el.addEventListener('shown.bs.modal', function (event)
+                {
+                    saline.copy(id);
+                });
+                modal.show();
+            }
+        });
         jQuery('body').on('click', '.btn-ordit-confirm-send', function(e)
         {
             e.preventDefault();
@@ -2663,7 +2913,7 @@ var saline =
                     results+= '<div class="col-sm-6"><alert class="alert alert-block alert-info"><small>Ordinals:</small><hr><strong>' + unspent.ordinals.length + '</strong></alert></div>';
                     results+= '<div class="col-sm-6"><alert class="alert alert-block alert-info"><small>Inscriptions:</small><hr><strong>' + unspent.inscriptions.length + '</strong></alert></div>';
                     results+= '</div>';
-                    results+= '<hr><a href="#" class="btn btn-block btn-outline-danger btn-ordit-confirm-send" data-txid="' + unspent.txid + ':' + unspent.n + '">CONFIRM TRANSACTION</a>';
+                    results+= '<hr><div class="row"><div class="col-md-6"><a href="#" class="btn btn-block btn-outline-light btn-send-to-sado" data-txid="' + unspent.txid + ':' + unspent.n + '">LIST ON SADO</a></div><div class="col-md-6"><a href="#" class="btn btn-block btn-outline-danger btn-ordit-confirm-send" data-txid="' + unspent.txid + ':' + unspent.n + '">CONFIRM TRANSACTION</a></div></div>';
                 }
                 
                 saline.modal('Confirm Transaction', results);
@@ -3048,6 +3298,7 @@ var saline =
                 {
                     id: '',
                     css: '',
+                    action: false,
                     fields: false
                 };
                 Object.assign(options, params);
@@ -3120,7 +3371,13 @@ var saline =
                                     {
                                         field.type = 'password';
                                     }
-                                    html+= '<input class="form-control" type="' + field.type + '" name="' + options.css + '-' + f + '" id="' + options.css + '-' + f + '" placeholder="' + ph + '" value="' + val + '" autocomplete="off" ' + np + ' />';
+                                    
+                                    var ro = '';
+                                    if(typeof field.readonly != 'undefined' && field.readonly === true)
+                                    {
+                                        ro = ' readonly="readonly"';
+                                    }
+                                    html+= '<input class="form-control" type="' + field.type + '" name="' + options.css + '-' + f + '" id="' + options.css + '-' + f + '" placeholder="' + ph + '" value="' + val + '" autocomplete="off" ' + np + '' + ro + ' />';
                                 }
                                 else if(field.type == 'select' && typeof field.choices == 'object')
                                 {
@@ -3147,7 +3404,14 @@ var saline =
                 }
                 html+= '<hr>';
                 html+= '<div class="row">';
-                html+= '<div class="col-sm-6"></div>';
+                html+= '<div class="col-sm-6">';
+                
+                if(options.action)
+                {
+                    html+= options.action;
+                }
+                
+                html+= '</div>';
                 html+= '<div class="col-sm-6">';
                 html+= '<input class="btn btn-block btn-primary" type="submit" value="SUBMIT" />';
                 html+= '</div>';
@@ -3155,6 +3419,21 @@ var saline =
                 html+= '</form>';
                 return html;
             }
+        }
+    },
+    sado:
+    {
+        db: function()
+        {
+            var db = 
+            {
+                orderbook: ordit.sdk.config.apis[saline.db.db.defaults.network].orderbook,
+                dust: 1000,
+                fees: 15,
+                format: 'psbt'
+            };
+            
+            return db;
         }
     },
     sodium:
@@ -3472,6 +3751,42 @@ jQuery(window).on('load', function()
                     }
                 ]
             });
+            saline.db.html.forms.verify = saline.html.forms.create({
+                css: 'form-ordit-wallet-verify',
+                fields:
+                [
+                    {
+                        type: 'text',
+                        label: 'PubKey',
+                        placeholder: 'Public key used to sign message ...?'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Message',
+                        placeholder: 'What message was signed ...?'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Signature',
+                        placeholder: 'What is the signature ...?'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Username',
+                        placeholder: 'Provide a domain-based username ...'
+                    },
+                    {
+                        type: 'number',
+                        label: 'PIN',
+                        placeholder: 'Required to authenticate action'
+                    },
+                    {
+                        type: 'password',
+                        label: 'Password',
+                        placeholder: 'Also required for this action ...'
+                    }
+                ]
+            });
             saline.db.html.forms.collection = saline.html.forms.create({
                 css: 'form-ordit-collection-inscription',
                 fields:
@@ -3588,6 +3903,75 @@ jQuery(window).on('load', function()
                 ]
             });
             
+            saline.db.html.forms.sado = saline.html.forms.create({
+                css: 'form-ordit-sado-list',
+                fields:
+                [
+                    {
+                        type: 'text',
+                        label: 'Location',
+                        placeholder: 'Must be an unspent TXID:VOUT ...',
+                        readonly: true
+                    },
+                    {
+                        type: 'text',
+                        label: 'Cardinals',
+                        placeholder: 'How many satoshis in exchange for location?'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Username',
+                        placeholder: 'Provide a domain-based username ...'
+                    },
+                    {
+                        type: 'number',
+                        label: 'PIN',
+                        placeholder: 'Required to authenticate action'
+                    },
+                    {
+                        type: 'password',
+                        label: 'Password',
+                        placeholder: 'Also required for this action ...'
+                    }
+                ]
+            });
+            
+            saline.db.html.forms.settings = saline.html.forms.create({
+                css: 'form-ordit-sado-settings',
+                fields:
+                [
+                    {
+                        type: 'text',
+                        label: 'Orderbook',
+                        placeholder: 'Must be a valid orderbook address ...',
+                        value: ordit.sdk.config.apis[saline.db.db.defaults.network].orderbook
+                    },
+                    {
+                        type: 'text',
+                        label: 'Network Fee',
+                        placeholder: 'Default dust for orderbook updates ...',
+                        value: 1000
+                    },
+                    {
+                        type: 'text',
+                        label: 'Sats per Byte',
+                        placeholder: 'Defaults to 15 sats per byte if empty ...',
+                        value: 15
+                    },
+                    {
+                        type: 'select',
+                        label: 'Sig Format',
+                        choices:
+                        [
+                            {
+                                id: 'psbt',
+                                text: 'PSBT Signatures'
+                            }
+                        ]
+                    }
+                ]
+            });
+            
             var inscribe_fields = 
             [
                 {
@@ -3694,99 +4078,112 @@ jQuery(window).on('load', function()
                     )
                     {
                         saline.loader(true, 'FETCHING');
-                        ordit.sdk.balance.get({key: saline.db.user.key, format: 'p2tr', network: network}, function(w)
+                        ordit.sdk.sado.orderbook({
+                            network: network
+                        },  function(sado)
                         {
-                            if(w.success)
+                            if(sado.success)
                             {
-                                var strings = 
-                                {
-                                    counts: {},
-                                    balance: parseFloat(w.data.counts.satoshis / (10 ** 8))
-                                };
-                                jQuery.each(w.data.counts, function(k, v)
-                                {
-                                    strings.counts[k] = v.toLocaleString('en-GB');
-                                })
-                                w.data.strings = strings;
-                                saline.db.wallet = w.data;
+                                saline.db.orderbook = sado.data;
                             }
-
-                            var collection_field = 
+                            ordit.sdk.balance.get({
+                                key: saline.db.user.key, 
+                                format: 'p2tr', 
+                                network: network
+                            },  function(w)
                             {
-                                type: 'hidden'
-                            }
-
-                            if(typeof saline.db.wallet.collections == 'object' && saline.db.wallet.collections.length > 0)
-                            {
-                                collection_field = 
+                                if(w.success)
                                 {
-                                    type: 'select',
-                                    label: 'Collection',
-                                    choices: [
+                                    var strings = 
+                                    {
+                                        counts: {},
+                                        balance: parseFloat(w.data.counts.satoshis / (10 ** 8))
+                                    };
+                                    jQuery.each(w.data.counts, function(k, v)
+                                    {
+                                        strings.counts[k] = v.toLocaleString('en-GB');
+                                    })
+                                    w.data.strings = strings;
+                                    saline.db.wallet = w.data;
+                                }
+
+                                var collection_field = 
+                                {
+                                    type: 'hidden'
+                                }
+
+                                if(typeof saline.db.wallet.collections == 'object' && saline.db.wallet.collections.length > 0)
+                                {
+                                    collection_field = 
+                                    {
+                                        type: 'select',
+                                        label: 'Collection',
+                                        choices: [
+                                            {
+                                                id: '',
+                                                text: '-- Select Collection --'
+                                            }
+                                        ]
+                                    };
+                                    for(c = 0; c < saline.db.wallet.collections.length; c++)
+                                    {
+                                        collection_field.choices.push({
+                                            id: saline.db.wallet.collections[c].outpoint,
+                                            text: saline.db.wallet.collections[c].meta.title
+                                        })
+                                    }
+                                }
+
+                                saline.db.html.forms.mint = saline.html.forms.create({
+                                    css: 'form-ordit-mint-inscription',
+                                    fields:
+                                    [
+                                        collection_field,
                                         {
-                                            id: '',
-                                            text: '-- Select Collection --'
+                                            type: 'text',
+                                            label: 'Inscription',
+                                            placeholder: 'Outpoint / location of collection ...'
+                                        },
+                                        {
+                                            type: 'file',
+                                            label: 'File',
+                                            placeholder: 'File to inscribe ...'
+                                        },
+                                        {
+                                            type: 'text',
+                                            label: 'Nonce',
+                                            placeholder: 'Unique integer less than limit ...'
+                                        },
+                                        {
+                                            type: 'text',
+                                            label: 'Publisher',
+                                            placeholder: 'Integer index for publisher array ...'
+                                        },
+                                        {
+                                            type: 'text',
+                                            label: 'Destination',
+                                            placeholder: 'Where to send the inscription ...?'
+                                        },
+                                        {
+                                            type: 'text',
+                                            label: 'Username',
+                                            placeholder: 'Provide a domain-based username ...'
+                                        },
+                                        {
+                                            type: 'number',
+                                            label: 'PIN',
+                                            placeholder: 'Required to authenticate action'
+                                        },
+                                        {
+                                            type: 'password',
+                                            label: 'Password',
+                                            placeholder: 'Also required for this action ...'
                                         }
                                     ]
-                                };
-                                for(c = 0; c < saline.db.wallet.collections.length; c++)
-                                {
-                                    collection_field.choices.push({
-                                        id: saline.db.wallet.collections[c].outpoint,
-                                        text: saline.db.wallet.collections[c].meta.title
-                                    })
-                                }
-                            }
-                            
-                            saline.db.html.forms.mint = saline.html.forms.create({
-                                css: 'form-ordit-mint-inscription',
-                                fields:
-                                [
-                                    collection_field,
-                                    {
-                                        type: 'text',
-                                        label: 'Inscription',
-                                        placeholder: 'Outpoint / location of collection ...'
-                                    },
-                                    {
-                                        type: 'file',
-                                        label: 'File',
-                                        placeholder: 'File to inscribe ...'
-                                    },
-                                    {
-                                        type: 'text',
-                                        label: 'Nonce',
-                                        placeholder: 'Unique integer less than limit ...'
-                                    },
-                                    {
-                                        type: 'text',
-                                        label: 'Publisher',
-                                        placeholder: 'Integer index for publisher array ...'
-                                    },
-                                    {
-                                        type: 'text',
-                                        label: 'Destination',
-                                        placeholder: 'Where to send the inscription ...?'
-                                    },
-                                    {
-                                        type: 'text',
-                                        label: 'Username',
-                                        placeholder: 'Provide a domain-based username ...'
-                                    },
-                                    {
-                                        type: 'number',
-                                        label: 'PIN',
-                                        placeholder: 'Required to authenticate action'
-                                    },
-                                    {
-                                        type: 'password',
-                                        label: 'Password',
-                                        placeholder: 'Also required for this action ...'
-                                    }
-                                ]
+                                });
+
+                                saline.init();
                             });
-                            
-                            saline.init();
                         });
                     }
                     else

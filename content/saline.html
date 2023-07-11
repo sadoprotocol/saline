@@ -18,26 +18,6 @@
     </head>
     <body class="loading" data-text="LOADING" id="main-body">
         
-        <!--
-        <nav class="navbar navbar-expand-xl navbar-light fixed-top bg-dark">
-            <div class="container">
-                <b class="navbar-brand">
-                    ORDIT
-                </b>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-navigation-menu" aria-controls="main-navigation-menu" aria-expanded="false" aria-label="Toggle navigation">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="collapse navbar-collapse" id="main-navigation-menu">
-                    <ul id="menu-main-navigation" class="navbar-nav ms-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a href="https://ordit.io/sdk/" target="_blank" class="nav-link">LEARN MORE</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-        -->
-        
         <div class="section batter-mustache" style="background: transparent;">
             <div class="container" style="text-align: left">
                 
@@ -60,7 +40,10 @@
                                 <button class="nav-link" id="utxo-tab" data-bs-toggle="tab" data-bs-target="#utxo" type="button" role="tab" aria-controls="utxo" aria-selected="false">UTXO</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="db-tab" data-bs-toggle="tab" data-bs-target="#db" type="button" role="tab" aria-controls="db" aria-selected="false">SETTINGS</button>
+                                <button class="nav-link" id="sado-tab" data-bs-toggle="tab" data-bs-target="#sado" type="button" role="tab" aria-controls="sado" aria-selected="false">SADO</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="db-tab" data-bs-toggle="tab" data-bs-target="#db" type="button" role="tab" aria-controls="db" aria-selected="false">DB</button>
                             </li>
                         </ul>
                     </div>
@@ -261,6 +244,10 @@
                                                 <pre style="text-align: center">{{sat}}</pre>
                                             </small>
                                             
+                                            {{#formats.html}}
+                                            <iframe src="{{media_content}}" class="img img-thumbnail img-responsive img-block ordit-steno-img" id="img-{{sat}}" crossorigin="anonymous"></iframe>
+                                            {{/formats.html}}
+                                            
                                             {{#formats.image}}
                                             <img src="{{media_content}}" class="img img-thumbnail img-responsive img-block ordit-steno-img" id="img-{{sat}}" crossorigin="anonymous" />
                                             {{/formats.image}}
@@ -361,7 +348,195 @@
                                 {{/addresses}}
                                 </div>
                             </div>
+                            <div class="tab-pane fade" id="sado" role="tabpanel" aria-labelledby="sado-tab">
+                                
+                                <ul class="nav nav-tabs" id="sado-tabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab" aria-controls="orders" aria-selected="true">OPEN ORDERBOOK</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="offers-tab" data-bs-toggle="tab" data-bs-target="#offers" type="button" role="tab" aria-controls="offers" aria-selected="false">PERSONAL OFFERS</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">SETTINGS</button>
+                                    </li>
+                                </ul>
+                                
+                                <hr>
+                                
+                                <div class="tab-content" id="sado-tabsContent">
+                                    <div class="tab-pane fade show active" id="orders" role="tabpanel" aria-labelledby="orders-tab">
+                                        
+                                        <alert class="alert alert-success alert-block">
+                                            <small>GLOBAL OPEN ORDERS SPONSORED BY ORDZAAR</small>
+                                        </alert>
+
+                                        {{#orderbook.orders}}
+                                        <hr />
+                                        <alert class="alert alert-info alert-block">
+                                            <small>
+                                                <pre>CID: {{cid}}</pre>
+                                            </small>
+                                            <hr>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    {{#inscriptions}}
+
+                                                        {{#formats.image}}
+                                                        <img src="{{media_content}}" class="img img-thumbnail img-responsive img-block ordit-steno-img" id="img-{{sat}}" crossorigin="anonymous" />
+                                                        {{/formats.image}}
+
+                                                        {{#formats.audio}}
+                                                        <audio controls class="ordit-video" src="{{media_content}}" type="{{media_type}}" id="audio-{{sat}}" crossorigin="anonymous"></audio>
+                                                        {{/formats.audio}}
+
+                                                        {{#formats.video}}
+                                                        <video controls class="ordit-video" src="{{media_content}}" type="{{media_type}}" id="video-{{sat}}" crossorigin="anonymous"></video>
+                                                        {{/formats.video}}
+
+                                                        {{#formats.text}}
+                                                        <textarea class="form-control ordit-text" readonly="readonly" data-src="{{media_content}}" crossorigin="anonymous" loading="lazy"></textarea>
+                                                        {{/formats.text}}
+
+                                                    {{/inscriptions}}
+                                                </div>
+                                                <div class="col-md-8" style="text-align: left">
+
+                                                    <small>
+
+                                                        Inscription #<strong class="pull-right">{{#inscriptions}}{{number}}{{/inscriptions}}</strong>
+                                                        <br />Listed: <strong class="pull-right">{{ago}}</strong>
+
+                                                        {{#meta.name}}
+                                                        <br />Name: <strong class="pull-right">{{meta.name}}</strong>
+                                                        {{/meta.name}}
+
+                                                        <br />Listed Price: <strong class="pull-right">{{price.btc}} BTC</strong>
+
+                                                    </small>
+
+                                                    <hr>
+
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <small>
+                                                                <a href="#" class="btn btn-sm btn-xs btn-block btn-primary">
+                                                                    <small>
+                                                                        MAKE OFFER
+                                                                    </small>
+                                                                </a>
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <small>
+                                                                <a href="#" class="btn btn-sm btn-xs btn-block btn-outline-light btn-ordit-copy" data-content="{{cid}}">
+                                                                    <small>
+                                                                        COPY CID
+                                                                    </small>
+                                                                </a>
+                                                            </small>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </alert>
+                                        {{/orderbook.orders}}
+                                        
+                                    </div>
+                                    <div class="tab-pane fade" id="offers" role="tabpanel" aria-labelledby="offers-tab">
+                                        
+                                        <alert class="alert alert-success alert-block">
+                                            <small>OFFERS YOU'VE MADE OR MADE FOR ITEMS YOU LISTED</small>
+                                        </alert>
+
+                                        {{#orderbook.offers}}
+                                        <hr />
+                                        <alert class="alert alert-info alert-block">
+                                            <small>
+                                                <pre>CID: {{cid}}</pre>
+                                            </small>
+                                            <hr>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    {{#inscriptions}}
+
+                                                        {{#formats.image}}
+                                                        <img src="{{media_content}}" class="img img-thumbnail img-responsive img-block ordit-steno-img" id="img-{{sat}}" crossorigin="anonymous" />
+                                                        {{/formats.image}}
+
+                                                        {{#formats.audio}}
+                                                        <audio controls class="ordit-video" src="{{media_content}}" type="{{media_type}}" id="audio-{{sat}}" crossorigin="anonymous"></audio>
+                                                        {{/formats.audio}}
+
+                                                        {{#formats.video}}
+                                                        <video controls class="ordit-video" src="{{media_content}}" type="{{media_type}}" id="video-{{sat}}" crossorigin="anonymous"></video>
+                                                        {{/formats.video}}
+
+                                                        {{#formats.text}}
+                                                        <textarea class="form-control ordit-text" readonly="readonly" data-src="{{media_content}}" crossorigin="anonymous" loading="lazy"></textarea>
+                                                        {{/formats.text}}
+
+                                                    {{/inscriptions}}
+                                                </div>
+                                                <div class="col-md-8" style="text-align: left">
+
+                                                    <small>
+
+                                                        Inscription #<strong class="pull-right">{{#inscriptions}}{{number}}{{/inscriptions}}</strong>
+                                                        <br />Listed: <strong class="pull-right">{{ago}}</strong>
+
+                                                        {{#meta.name}}
+                                                        <br />Name: <strong class="pull-right">{{meta.name}}</strong>
+                                                        {{/meta.name}}
+
+                                                        <br />Listed Price: <strong class="pull-right">{{price.btc}} BTC</strong>
+
+                                                    </small>
+
+                                                    <hr>
+
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <small>
+                                                                <a href="#" class="btn btn-sm btn-xs btn-block btn-primary">
+                                                                    <small>
+                                                                        MAKE OFFER
+                                                                    </small>
+                                                                </a>
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <small>
+                                                                <a href="#" class="btn btn-sm btn-xs btn-block btn-outline-light btn-ordit-copy" data-content="{{cid}}">
+                                                                    <small>
+                                                                        COPY CID
+                                                                    </small>
+                                                                </a>
+                                                            </small>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </alert>
+                                        {{/orderbook.offers}}
+                                        
+                                    </div>
+                                    <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                                
+                                        <alert class="alert alert-block alert-info">
+                                            <small>SADO SPECIFIC SETTINGS</small>
+                                        </alert>
+                                        <hr>
+                                        {{{html.forms.settings}}}
+
+                                    </div>
+                                    
+                                </div>
+                            </div>
                             <div class="tab-pane fade" id="db" role="tabpanel" aria-labelledby="db-tab">
+                                
                                 <alert class="alert alert-block">
                                     <small>Public Key: <pre>{{user.key}}</pre></small>
                                     <hr>
@@ -390,6 +565,7 @@
                                 <a href="#" class="btn btn-block btn-outline-light btn-ordit-new-keys" data-bs-toggle="modal" data-bs-target="#regenerate-shards-modal">
                                     <small>GENERATE NEW RECOVERY SHARDS</small>
                                 </a>
+                                
                             </div>
                             
                         </div>
@@ -648,6 +824,24 @@
                             </alert>
                             <hr>
                             {{{html.forms.send}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal fade" tabindex="-1" id="ordit-sado-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">List on SADO</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <alert class="alert alert-block alert-info">
+                                <small>LIST UTXO FOR SALE ON SADO</small>
+                            </alert>
+                            <hr>
+                            {{{html.forms.sado}}}
                         </div>
                     </div>
                 </div>
