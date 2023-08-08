@@ -56,9 +56,12 @@
                                     <div class="col-sm-12">
                                         <alert class="alert alert-block alert-info">
                                             <strong>
-                                                BTC BALANCE: 
+                                                BALANCE: 
                                                 {{strings.balance}} 
-                                                <i class="fab fa-bitcoin"></i>
+                                                <i class="fab fa-bitcoin"></i> 
+                                                {{#db.testing}}
+                                                <small style="text-transform: uppercase">[ NETWORK: {{db.defaults.network}} ]</small>
+                                                {{/db.testing}}
                                             </strong>
                                             <hr>
                                             <small>
@@ -541,6 +544,14 @@
                                     <small>Public Key: <pre>{{user.key}}</pre></small>
                                     <hr>
                                     <div class="row">
+                                        <div class="col-md-2"></div>
+                                        <div class="col-md-8">
+                                            {{{html.forms.switchnet}}}
+                                        </div>
+                                        <div class="col-md-2"></div>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
                                         <div class="col-sm-3"></div>
                                         <div class="col-sm-6">
                                             <div class="qr-holder" data-content="{{user.key}}"></div>
@@ -778,6 +789,9 @@
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="verify-tab" data-bs-toggle="tab" data-bs-target="#verify" type="button" role="tab" aria-controls="verify" aria-selected="false">Verify Message</button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tx-tab" data-bs-toggle="tab" data-bs-target="#tx" type="button" role="tab" aria-controls="tx" aria-selected="false">Sign Transaction</button>
+                                </li>
                             </ul>
                             
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -802,6 +816,15 @@
                                     </alert>
                                     <hr>
                                     {{{html.forms.verify}}}
+                                    
+                                </div>
+                                <div class="tab-pane fade" id="tx" role="tabpanel" aria-labelledby="tx-tab">
+                                    
+                                    <alert class="alert alert-block alert-info">
+                                        <small>SIGN PSBT TRANSACTIONS</small>
+                                    </alert>
+                                    <hr>
+                                    {{{html.forms.signtx}}}
                                     
                                 </div>
                             </div>
@@ -948,6 +971,6 @@
     <!-- ORDIT SDK ? -->
     <script src="../js/ordit.js"></script>
     <script src="../js/saline.js"></script>
-    
+    <script src="../js/saline-loader.js"></script>
     
 </html>

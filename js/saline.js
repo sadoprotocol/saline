@@ -1,21 +1,18 @@
-var firefox_webextension = false;
 var saline_clipboard = false;
 var saline_iso = {};
-
-//if(typeof browser == 'object') firefox_webextension = true;
 
 var saline = 
 {
     db:
     {
-        browser: firefox_webextension,
         db:
         {
             setup: false,
             defaults:
             {
                 network: 'regtest'
-            }
+            },
+            testing: true
         },
         html:
         {
@@ -179,7 +176,7 @@ var saline =
             {
                 var error = false;
                 
-                if(browser != null && typeof browser == 'object')
+                if(typeof browser != null && typeof browser == 'object')
                 {
                     try
                     {
@@ -349,6 +346,8 @@ var saline =
         var mint = 'form-ordit-mint-inscription';
         var sado = 'form-ordit-sado-list';
         var settings = 'form-ordit-sado-settings';
+        var signtx = 'form-ordit-wallet-signtx';
+        var switchnet = 'form-ordit-switch-network';
         
         var get = 'form-ordit-wallet-get';
         var lookup = 'form-ordit-wallet-lookup';
@@ -383,8 +382,7 @@ var saline =
                 
         }
         
-        // Track form state
-        // -- For firefox extension :-(
+        // Track form state ...
         jQuery('button.state-tabs').each(function(e)
         {
             var tid = jQuery(this).attr('id');
@@ -705,14 +703,23 @@ var saline =
         });
         jQuery('body').on('submit', '.' + recover, function(e)
         {
+            console.log('e', e);
             e.preventDefault();
+            console.log('recover', recover);
             var form = jQuery(this);
+            console.log('form', form);
             var shard_1 = jQuery(form).find('#' + recover + '-0').val();
             var shard_2 = jQuery(form).find('#' + recover + '-1').val();
             var username = jQuery(form).find('#' + recover + '-2').val();
             var dns = jQuery(form).find('#' + recover + '-3').val();
             var pin = jQuery(form).find('#' + recover + '-4').val();
             var password = jQuery(form).find('#' + recover + '-5').val();
+            console.log('shard_1', shard_1);
+            console.log('shard_2', shard_2);
+            console.log('username', username);
+            console.log('dns', dns);
+            console.log('pin', pin);
+            console.log('password', password);
             if
             (
                 shard_1 && shard_2 && pin
@@ -721,6 +728,7 @@ var saline =
                 && username != password
             )
             {
+                console.log('in?');
                 async function recover()
                 {
                     var salt = username + '_' + pin + '_' + password;
@@ -728,8 +736,10 @@ var saline =
                     var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
                     var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
 
+                    console.log('user_secret', user_secret);
                     saline.sodium.keys(user_secret, function(user_keys)
                     {
+                        console.log('user_keys', user_keys);
                         if(user_keys)
                         {   
                             saline.sodium.decrypt
@@ -840,6 +850,10 @@ var saline =
                     });
                 }
                 recover();
+            }
+            else
+            {
+                console.log('out?');
             }
         });
         jQuery('body').on('submit', '.' + regenerate, function(e)
@@ -1073,7 +1087,6 @@ var saline =
                                                             network: saline.db.db.defaults.network
                                                         }, async function(sigs)
                                                         {
-                                                            console.log('sigs', sigs);
                                                             if(sigs.success)
                                                             {
                                                                 var results = '<alert class="alert alert-block alert-info">';
@@ -1123,6 +1136,217 @@ var saline =
                 if(name == password)
                 {
                     saline.modal('Message Signing Warning', 'Name cannot match password');
+                }
+            }
+        });
+        jQuery('body').on('submit', '.' + signtx, function(e)
+        {
+            e.preventDefault();
+            var form = jQuery(this);
+            var input = jQuery(form).find('#' + signtx + '-0').val();
+            var tweaked = parseInt(jQuery(form).find('#' + signtx + '-1').val());
+            var extracted = parseInt(jQuery(form).find('#' + signtx + '-2').val());
+            var finalized = parseInt(jQuery(form).find('#' + signtx + '-3').val());
+            var sighashType = parseInt(jQuery(form).find('#' + signtx + '-4').val());
+            var signingIndexes = jQuery(form).find('#' + signtx + '-5').val();
+            var username = jQuery(form).find('#' + signtx + '-6').val();
+            var pin = jQuery(form).find('#' + signtx + '-7').val();
+            var password = jQuery(form).find('#' + signtx + '-8').val();
+            
+            if(signingIndexes)
+            {
+                try
+                {
+                    signingIndexes = JSON.parse(signingIndexes);
+                }
+                catch(e){}
+            }
+            
+            if
+            (
+                input && pin
+                && username && password
+                && username != password
+            )
+            {
+                saline.loader(true, 'SIGNING');
+                ordit.sdk.dnkeys(username, function(dnkeys)
+                {   
+                    if(typeof dnkeys["saline-salt"] != 'undefined')
+                    {
+                        var dns = dnkeys["saline-salt"];
+                        
+                        async function recover()
+                        {
+                            var salt = username + '_' + pin + '_' + password;
+                            var hash = bitcointp.crypto.sha256(Buffer.from(salt), 'utf8').toString('hex');
+                            var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
+                            var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
+
+                            saline.sodium.keys(user_secret, function(user_keys)
+                            {
+                                if(user_keys)
+                                {   
+                                    saline.sodium.decrypt
+                                    (
+                                        dns,
+                                        user_keys, 
+                                        async function(decrypted_personal_salt)
+                                        {   
+                                            if(decrypted_personal_salt)
+                                            { 
+                                                var data = saline.db.db.salt;
+                                                saline.sodium.decrypt
+                                                (
+                                                    data,
+                                                    user_keys, 
+                                                    async function(decrypted_device_salt)
+                                                    {
+                                                        var ds = decrypted_device_salt;
+                                                        var ps = decrypted_personal_salt;
+                                                        var secret = ds + '_' + salt + '_' + ps + '_' + username + '_' + password;
+                                                        var hashed = bitcointp.crypto.sha256(Buffer.from(secret), 'utf8').toString('hex');
+                                                        var bip = bip39.entropyToMnemonic(Buffer.from(hashed, 'hex'), bip39.wordlists.english);
+                                                        var seed = await bip39.mnemonicToEntropy(bip).toString('hex');
+                                                        
+                                                        // Is input hex or base64 ?
+                                                        var is_hex = true;
+                                                        if(input.indexOf('/') > -1 || input.indexOf('=') > -1)
+                                                        {
+                                                            is_hex = false;
+                                                        }
+                                                        
+                                                        var psbt_options = 
+                                                        {
+                                                            seed: seed,
+                                                            network: saline.db.db.defaults.network
+                                                        }
+                                                        
+                                                        if(is_hex)
+                                                        {
+                                                            psbt_options.hex = Buffer.from(input, 'hex').toString('hex');
+                                                        }
+                                                        else
+                                                        {
+                                                            psbt_options.base64 = input;
+                                                        }
+                                                        
+                                                        if(tweaked)
+                                                        {
+                                                            psbt_options.tweaked = true;
+                                                        }
+                                                        
+                                                        if(sighashType)
+                                                        {
+                                                            psbt_options.sighashType = sighashType;
+                                                        }
+                                                        if(signingIndexes)
+                                                        {
+                                                            psbt_options.signingIndexes = signingIndexes;
+                                                        }
+                                                        if(extracted)
+                                                        {
+                                                            psbt_options.extracted = true;
+                                                        }
+                                                        else
+                                                        {
+                                                            psbt_options.extracted = false;
+                                                        }
+
+                                                        ordit.sdk.psbt.sign(
+                                                            psbt_options, 
+                                                        async function(sigs)
+                                                        {
+                                                            if(sigs.success)
+                                                            {
+                                                                if(sigs.data.hex != false)
+                                                                {
+                                                                    var results = '<alert class="alert alert-block alert-info">';
+                                                                    results+= '<small>FINALIZED HEX FOR RELAY</small>';
+                                                                    results+= '</alert><hr>';
+                                                                    results+= '<div class="row">';
+                                                                    results+= '<div class="col-sm-3"></div>';
+                                                                    results+= '<div class="col-sm-6">';
+                                                                    results+= '<b style="display: block; text-align: center;">HEX</b>';
+                                                                    results+= '<div class="qr-holder" data-content="' + sigs.data.hex + '"></div>';
+                                                                    results+= '<a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + sigs.data.hex + '">COPY</a>';
+                                                                    results+= '</div>';
+                                                                    results+= '<div class="col-sm-3"></div>';
+                                                                    results+= '</div>';
+                                                                    saline.modal('Signatures', results);
+                                                                }
+                                                                else if
+                                                                (
+                                                                    sigs.data.psbt.hex.length < 2950
+                                                                )
+                                                                {
+                                                                    var results = '<alert class="alert alert-block alert-info">';
+                                                                    results+= '<small>UNFINALIZED PSBT</small>';
+                                                                    results+= '</alert><hr>';
+                                                                    results+= '<div class="row">';
+                                                                    results+= '<div class="col-sm-6">';
+                                                                    results+= '<b style="display: block; text-align: center;">HEX</b>';
+                                                                    results+= '<div class="qr-holder" data-content="' + sigs.data.psbt.hex + '"></div>';
+                                                                    results+= '<a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + sigs.data.psbt.hex + '">COPY</a>';
+                                                                    results+= '</div>';
+                                                                    results+= '<div class="col-sm-6">';
+                                                                    results+= '<b style="display: block; text-align: center;">BASE64</b>';
+                                                                    results+= '<div class="qr-holder" data-content="' + sigs.data.psbt.base64 + '"></div>';
+                                                                    results+= '<a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + sigs.data.psbt.base64 + '">COPY</a>';
+                                                                    results+= '</div>';
+                                                                    results+= '</div>';
+                                                                    saline.modal('Signatures', results);
+                                                                }
+                                                                else
+                                                                {
+                                                                    var results = '<alert class="alert alert-block alert-info">';
+                                                                    results+= '<small>UNFINALIZED PSBT</small>';
+                                                                    results+= '</alert><hr>';
+                                                                    results+= '<div class="row">';
+                                                                    results+= '<div class="col-sm-6">';
+                                                                    results+= '<b style="display: block; text-align: center;">HEX</b>';
+                                                                    results+= '<pre>' + sigs.data.psbt.hex + '</pre>';
+                                                                    results+= '<a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + sigs.data.psbt.hex + '">COPY</a>';
+                                                                    results+= '</div>';
+                                                                    results+= '<div class="col-sm-6">';
+                                                                    results+= '<b style="display: block; text-align: center;">BASE64</b>';
+                                                                    results+= '<pre>' + sigs.data.psbt.base64 + '</pre>';
+                                                                    results+= '<a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + sigs.data.psbt.base64 + '">COPY</a>';
+                                                                    results+= '</div>';
+                                                                    results+= '</div>';
+                                                                    saline.modal('Signatures', results);
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                saline.modal('PSBT Signing Warning', sigs.message);
+                                                            }
+                                                        });
+                                                    }
+                                                );
+                                            }
+                                            else
+                                            {
+                                                saline.modal('PSBT Signing Warning', 'Unable to decrypt DNS data');
+                                            }
+                                        }
+                                    );
+                                }
+                            });
+                        }
+                        recover();
+                    }
+                    else
+                    {
+                        saline.modal('PSBT Signing Warning', 'Unable to verify DNS data');
+                    }
+                });
+            }
+            else
+            {
+                if(name == password)
+                {
+                    saline.modal('PSBT Signing Warning', 'Name cannot match password');
                 }
             }
         });
@@ -1190,14 +1414,11 @@ var saline =
                                                             signature: sig,
                                                             network: saline.db.db.defaults.network
                                                         }
-                                                        
-                                                        console.log('verification_options', verification_options);
 
                                                         ordit.sdk.message.verify(
                                                             verification_options, 
                                                             async function(verified)
                                                         {
-                                                            console.log('verified', verified);
                                                             if(verified.success)
                                                             {
                                                                 var results = '<alert class="alert alert-block alert-info">';
@@ -1699,10 +1920,10 @@ var saline =
                                                             seed: seed,
                                                             location: utxo,
                                                             cardinals: cardinals,
-                                                            network: saline.db.db.defaults.network
+                                                            network: saline.db.db.defaults.network,
+                                                            instant: true
                                                         },  function(order)
                                                         {
-                                                            console.log('order', order);
                                                             if(order.success)
                                                             {
                                                                 var txid = order.data.txid;
@@ -2781,6 +3002,30 @@ var saline =
         saline.markdown();
         //saline.mustache();
     },
+    selects: function()
+    {
+        jQuery('body').on('change', 'select#form-ordit-switch-network-0', function(e)
+        {
+            var selected_network = jQuery(this).val();
+            var current_network = saline.db.db.defaults.network;
+            if(selected_network != current_network)
+            {
+                saline.loader(true, 'SWITCHING');
+                
+                saline.data.get(function(db)
+                {
+                    db.network = selected_network;
+                    saline.data.update(db, function(db)
+                    {   
+                        setTimeout(function()
+                        {
+                            window.location.reload();
+                        }, 150)
+                    });
+                });
+            }
+        });
+    },
     buttons: function()
     {
         jQuery('body').on('click', '.btn-oip-meta', function(e)
@@ -3166,6 +3411,7 @@ var saline =
             saline.copy();
             saline.forms();
             saline.buttons();
+            saline.selects();
             saline.isotope();
             
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
@@ -3299,6 +3545,7 @@ var saline =
                     id: '',
                     css: '',
                     action: false,
+                    submit: true,
                     fields: false
                 };
                 Object.assign(options, params);
@@ -3377,7 +3624,7 @@ var saline =
                                     {
                                         ro = ' readonly="readonly"';
                                     }
-                                    html+= '<input class="form-control" type="' + field.type + '" name="' + options.css + '-' + f + '" id="' + options.css + '-' + f + '" placeholder="' + ph + '" value="' + val + '" autocomplete="off" ' + np + '' + ro + ' />';
+                                    html+= "<input class='form-control' type='" + field.type + "' name='" + options.css + "-" + f + "' id='" + options.css + "-" + f + "' placeholder='" + ph + "' value='" + val + "' autocomplete='off' " + np + "" + ro + " />";
                                 }
                                 else if(field.type == 'select' && typeof field.choices == 'object')
                                 {
@@ -3385,7 +3632,12 @@ var saline =
                                     for(fc = 0; fc < field.choices.length; fc++)
                                     {
                                         var c = field.choices[fc];
-                                        html+= '<option value="' + c.id + '">' + c.text + '</option>';
+                                        var selected = '';
+                                        if(typeof c.selected != 'undefined' && c.selected)
+                                        {
+                                            selected = 'selected="selected"';
+                                        }
+                                        html+= '<option value="' + c.id + '" ' + selected + '>' + c.text + '</option>';
                                     }
                                     html+= '</select>';
                                 }
@@ -3402,20 +3654,25 @@ var saline =
                         }
                     }
                 }
-                html+= '<hr>';
-                html+= '<div class="row">';
-                html+= '<div class="col-sm-6">';
                 
-                if(options.action)
+                if(options.submit)
                 {
-                    html+= options.action;
+                    html+= '<hr>';
+                    html+= '<div class="row">';
+                    html+= '<div class="col-sm-6">';
+
+                    if(options.action)
+                    {
+                        html+= options.action;
+                    }
+
+                    html+= '</div>';
+                    html+= '<div class="col-sm-6">';
+                    html+= '<input class="btn btn-block btn-primary" type="submit" value="SUBMIT" />';
+                    html+= '</div>';
+                    html+= '</div>';
                 }
                 
-                html+= '</div>';
-                html+= '<div class="col-sm-6">';
-                html+= '<input class="btn btn-block btn-primary" type="submit" value="SUBMIT" />';
-                html+= '</div>';
-                html+= '</div>';
                 html+= '</form>';
                 return html;
             }
@@ -3559,7 +3816,7 @@ var saline =
     }
 }
 
-jQuery(window).on('load', function()
+var load_saline = function()
 {
     async function fingerprint()
     {
@@ -3733,6 +3990,87 @@ jQuery(window).on('load', function()
                         type: 'text',
                         label: 'Message',
                         placeholder: 'What to sign ...?'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Username',
+                        placeholder: 'Provide a domain-based username ...'
+                    },
+                    {
+                        type: 'number',
+                        label: 'PIN',
+                        placeholder: 'Required to authenticate action'
+                    },
+                    {
+                        type: 'password',
+                        label: 'Password',
+                        placeholder: 'Also required for this action ...'
+                    }
+                ]
+            });
+            saline.db.html.forms.signtx = saline.html.forms.create({
+                css: 'form-ordit-wallet-signtx',
+                fields:
+                [
+                    {
+                        type: 'text',
+                        label: 'PSBT',
+                        placeholder: 'What to sign ...?'
+                    },
+                    {
+                        type: 'select',
+                        label: 'Tweaked',
+                        choices:
+                        [
+                            {
+                                id: '0',
+                                text: 'NO'
+                            },
+                            {
+                                id: '1',
+                                text: 'YES'
+                            }
+                        ]
+                    },
+                    {
+                        type: 'select',
+                        label: 'Extracted',
+                        choices:
+                        [
+                            {
+                                id: '1',
+                                text: 'YES'
+                            },
+                            {
+                                id: '0',
+                                text: 'NO'
+                            }
+                        ]
+                    },
+                    {
+                        type: 'select',
+                        label: 'Finalized',
+                        choices:
+                        [
+                            {
+                                id: '1',
+                                text: 'YES'
+                            },
+                            {
+                                id: '0',
+                                text: 'NO'
+                            }
+                        ]
+                    },
+                    {
+                        type: 'text',
+                        label: 'sighashType',
+                        placeholder: 'Optional integer value ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'signingIndexes',
+                        placeholder: 'Optional JSON array ...'
                     },
                     {
                         type: 'text',
@@ -4031,6 +4369,11 @@ jQuery(window).on('load', function()
                     {
                         network = db.network;
                     }
+                    if(network == 'mainnet')
+                    {
+                        saline.db.db.testing = false;
+                    }
+                    saline.db.db.defaults.network = network;
                     if
                     (
                         typeof db.provide == 'object'
@@ -4133,6 +4476,33 @@ jQuery(window).on('load', function()
                                         })
                                     }
                                 }
+                                
+                                var network_choices = [];
+                                jQuery.each(ordit.sdk.config.apis, function(k, v)
+                                {
+                                    var choice = 
+                                    {
+                                        id: k,
+                                        text: k.toUpperCase()
+                                    }
+                                    if(k == saline.db.db.defaults.network)
+                                    {
+                                        choice.selected = true;
+                                    }
+                                    network_choices.push(choice);
+                                });
+                                
+                                saline.db.html.forms.switchnet = saline.html.forms.create({
+                                    css: 'form-ordit-switch-network',
+                                    fields:
+                                    [
+                                        {
+                                            type: 'select',
+                                            choices: network_choices
+                                        }
+                                    ],
+                                    submit: false
+                                });
 
                                 saline.db.html.forms.mint = saline.html.forms.create({
                                     css: 'form-ordit-mint-inscription',
@@ -4199,4 +4569,4 @@ jQuery(window).on('load', function()
         });
     };
     fingerprint();
-});
+};

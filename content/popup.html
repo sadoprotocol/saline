@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+        
+        <!-- META -->
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <link rel='dns-prefetch' href='//s.w.org' />
+        <title>SALINE</title>
+        
+        <!-- STYLES -->
+        <link rel="stylesheet" href="../css/bootstrap.css">
+        <link rel="stylesheet" href="../fontawesome/css/all.css">
+        <link rel="stylesheet" href="../css/saline.css?v=0.0.1.2">
+        
+    </head>
+    <body class="loading" data-text="LOADING" id="main-body">
+        
+        <div id="saline-popup-template" class="section batter-mustache" style="background: transparent;">
+            <div class="container" style="text-align: left">
+                
+                <div class="card">
+                    <div class="card-header">
+                        {{card.title}}
+                        <small class="pull-right">
+                            <span class="badge bg-dark" style="text-transform: uppercase;">
+                                {{network}}
+                            </span>
+                        </small>
+                    </div>
+                    <div class="card-body">
+                        {{{card.content}}}
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+    </body>
+    
+    <!--<script type="module" src="../js/browser-polyfill.js"></script>-->
+    
+    <script src="../js/jquery.js"></script>
+    <script src="../js/mustache.js"></script>
+    <script src="../js/ecc.js"></script>
+    <script src="../js/buffer.js"></script>
+    <script src="../js/sodium.js"></script>
+    <script src="../js/bip32.js"></script>
+    <script src="../js/bip39.js"></script>
+    <script src="../js/bitcoin-tap.js"></script>
+    
+    <script src="../js/bitcoinjs-0.2.0.min.js"></script>
+    <script src="../js/bitcoinjs-message.js"></script>
+    
+    <script src="../js/ordit.js"></script>
+    <script src="../js/saline.js"></script>
+    <!--<script src="../js/saline-sdk.js"></script>-->
+    <script src="../js/saline-popup.js"></script>
+    
+</html>

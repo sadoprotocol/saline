@@ -1,14 +1,73 @@
 {
-
-  "manifest_version": 2,
-  "name": "Saline",
-  "version": "0.0.1",
-  "description": "Provides a vault for storing salts and generating keys on demand.",
-  "permissions": [
-     "storage"
-  ],
-  "browser_action": {
-    "default_title": "SALINE",
-    "default_popup": "content/saline.html"
-  }
+    "manifest_version": 2,
+    "name": "Saline",
+    "version": "0.0.3",
+    "description": "Provides a vault for storing salts and generating keys on demand.",
+    "permissions": 
+    [
+        "storage",
+        "webRequest",
+        "<all_urls>",
+        "tabs"
+    ],
+    "browser_action": 
+    {
+        "default_title": "SALINE",
+        "default_popup": "content/saline.html",
+        "default_icon": 
+        {
+          "16": "img/favicon.png",
+          "32": "img/favicon.png",
+          "64": "img/favicon.png"
+        }
+    },
+    "icons": 
+    {
+      "16": "img/favicon.png",
+      "32": "img/favicon.png",
+      "64": "img/favicon.png"
+    },
+    "browser_specific_settings": 
+    {
+      "gecko": {
+        "id": "mark@smalley.my"
+      },
+      "safari": {
+        "id": "mark@smalley.my"
+      }
+    },
+    "web_accessible_resources": 
+    [
+        "js/saline-sdk.js", 
+        "js/saline-sdk.js", 
+        "js/web.js", 
+        "content/popup.html"
+    ],
+    "content_scripts": 
+    [
+        {
+            "matches": ["*://*/*"],
+            "js": [
+                "js/jquery.js", 
+                "js/webgl.js", 
+                "js/saline-sdk.js", 
+                "js/saline.js", 
+                "js/ecc.js", 
+                "js/bip32.js", 
+                "js/bip39.js", 
+                "js/buffer.js", 
+                "js/bitcoin-tap.js", 
+                "js/ordit.js", 
+                "js/web.js"
+            ]
+        }
+    ],
+    "background": {
+      "scripts": 
+      [
+          "js/saline-sdk.js", 
+          "js/saline-popup.js", 
+          "js/web-callbacks.js"
+      ]
+    }
 }

@@ -15,7 +15,7 @@ html body
 html, body
 {
     width: 580px;
-    min-height: 300px;
+    min-height: 580px;
     max-width: 580px;
     max-height: 580px;
     overflow-x: scroll;

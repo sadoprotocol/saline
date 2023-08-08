@@ -22,6 +22,7 @@ exports.sdk =
             mainnet:
             {
                 batter: 'https://mainnet.ordit.io/',
+                rpc: 'https://mainnet-v2.ordit.io/rpc',
                 dns: 'https://dns.google/resolve',
                 orderbook: '1H4vvBnr62YWQmvNSt8Z4pDw3Vcv1n5xz7',
                 formats:
@@ -52,6 +53,7 @@ exports.sdk =
             regtest:
             {
                 batter: 'https://regtest.ordit.io/',
+                rpc: 'https://regtest-v2.ordit.io/rpc',
                 dns: 'https://dns.google/resolve',
                 orderbook: 'bcrt1q2ys7qws8g072dqe3psp92pqz93ac6wmztexkh5',
                 formats:
@@ -82,6 +84,7 @@ exports.sdk =
             testnet:
             {
                 batter: 'https://testnet.ordit.io/',
+                rpc: 'https://testnet-v2.ordit.io/rpc',
                 dns: 'https://dns.google/resolve',
                 orderbook: 'tb1qfnw26753j7kqu3q099sd48htvtk5wm4e0enmru',
                 formats:
@@ -242,7 +245,7 @@ exports.sdk =
                                 url: options.url,
                                 slug: options.slug,
                                 creator: creator,
-                                pub1: options.publishers,
+                                publ: options.publishers,
                                 insc: valid_inscriptions
                             };
 
@@ -429,7 +432,7 @@ exports.sdk =
                                 if
                                 (
                                     m.insc[i].iid == options.inscription
-                                    && typeof m.pub1[parseInt(options.publisher)] != 'undefined'
+                                    && typeof m.publ[parseInt(options.publisher)] != 'undefined'
                                     && parseInt(options.nonce) < parseInt(m.insc[i].lim)
                                 )
                                 {
@@ -446,7 +449,7 @@ exports.sdk =
                                     ty: "insc",
                                     col: options.collection,
                                     iid: options.inscription,
-                                    pub1: m.pub1[options.publisher],
+                                    publ: m.publ[options.publisher],
                                     nonce: options.nonce
                                 }
                             }
@@ -606,6 +609,570 @@ exports.sdk =
             }
         });
     },
+    instant:
+    {
+        buy: function(params = {}, callback = false)
+        {   
+            var options = 
+            {
+                key: false, // todo - add support for other input types
+                psbt: false, // seller psbt
+                location: false, // TXID:VOUT - the "vout" is required :-(
+                fees: 10, // sats per byte
+                postage: 10000, // sats
+                network: 'testnet'
+            };
+            var results = 
+            {
+                success: false,
+                message: 'Invalid inputs for instant.buy',
+                data: false
+            };
+            Object.assign(options, params);
+            if
+            (
+                options.key && options.psbt 
+                && parseInt(options.postage) > 599
+                && typeof options.location == 'string'
+                && options.location.indexOf(':') > 0
+                && typeof callback == 'function'
+                &&
+                (
+                    options.network == 'mainnet'
+                    || options.network == 'testnet'
+                    || options.network == 'regtest'
+                )
+            )
+            {
+                var psbt = false;
+                var net_obj = ordit.sdk.network(options.network);
+                
+                try
+                {
+                    psbt = bitcointp.Psbt.fromHex(options.psbt, { network: net_obj});
+                }
+                catch(err){ error = err }
+                
+                if(psbt)
+                {
+                    var locs = options.location.split(':');
+                    var tx_id = locs[0];
+                    var vout = locs[1];
+                    
+                    var txid = Buffer.from(psbt.data.globalMap.unsignedTx.tx.ins[0].hash).reverse().toString('hex');
+                    
+                    if(txid == tx_id)
+                    {
+                        options.format = 'p2tr';
+                        ordit.sdk.balance.get(options, function(balances)
+                        {
+                            if(balances.success)
+                            {
+                                //var txid = options.location.split(':')[0];
+                                var address = balances.data.addresses[0].address;
+                                var xkey = balances.data.addresses[0].xkey;
+                                var spendables = balances.data.spendables;
+                                var seller_address = false;
+
+                                var psbt_ready = function(final_psbt)
+                                {   
+                                    results.success = true;
+                                    results.message = 'Unsigned PSBT attached to data';
+                                    results.data = 
+                                    {
+                                        hex: final_psbt.toHex(),
+                                        base64: final_psbt.toBase64()
+                                    }
+                                    callback(results);
+                                }
+
+                                var merged_psbts = function(merged_psbt, to_spend)
+                                {
+                                    var sats_to_send = merged_psbt.data.globalMap.unsignedTx.tx.outs[2].value;
+
+                                    var fees = 0;
+                                    var ins_used = 0;
+                                    var txs_to_use = [];
+                                    for(t = 0; t < to_spend.length; t++)
+                                    {
+                                        fees = JSON.parse(JSON.stringify((80 + ((t+1) * 180)) * options.fees));
+                                        if(ins_used < (sats_to_send + fees))
+                                        {
+                                            txs_to_use.push(to_spend[t]);
+                                            ins_used+= to_spend[t].sats;
+                                        }
+                                    }
+                                    
+                                    async function loop() 
+                                    {
+                                        for(un = 0; un < txs_to_use.length; un++)
+                                        { 
+                                            await new Promise(next => 
+                                            {
+                                                var tx_to_use = txs_to_use[un];
+                                                ordit.sdk.api({
+                                                    uri: 'utxo/transaction',
+                                                    data: { 
+                                                        txid: tx_to_use.txid,
+                                                        options:
+                                                        {
+                                                            txhex: true,
+                                                            notsafetospend: false,
+                                                            allowedrarity: ['common']
+                                                        }
+                                                    },
+                                                    network: options.network
+                                                }, function(this_tx)
+                                                {
+                                                    if(this_tx.success)
+                                                    {
+                                                        var raw = bitcointp.Transaction.fromHex(this_tx.rdata.hex);
+                                                        var d = 
+                                                        {
+                                                            hash: this_tx.rdata.txid,
+                                                            index: parseInt(tx_to_use.n),
+                                                            nonWitnessUtxo: Buffer.from(this_tx.rdata.hex, 'hex'),
+                                                            sequence: 0xfffffffd // Needs to be at least 2 below max int value to be RBF
+                                                        };
+                                                        var sats = Math.round(parseFloat(this_tx.rdata.vout[tx_to_use.n].value) * (10 ** 8));
+
+                                                        var p2tr = bitcointp.payments.p2tr({
+                                                            internalPubkey: Buffer.from(xkey, 'hex'),
+                                                            network: net_obj
+                                                        });
+
+                                                        d.tapInternalKey = Buffer.from(xkey, 'hex');
+                                                        d.witnessUtxo = 
+                                                        {
+                                                            script: p2tr.output,
+                                                            value: sats
+                                                        };
+                                                        
+                                                        d.sighashType = 131;
+
+                                                        merged_psbt.addInput(d);
+
+                                                        next();
+                                                    }
+                                                    else
+                                                    {
+                                                        results.message = this_tx.message;
+                                                        callback(results);
+                                                    }
+                                                });
+                                            });
+                                        }
+                                    }
+                                    loop().then(() => 
+                                    {
+                                        // Got change ...?
+                                        var change = ins_used - (sats_to_send + fees);
+                                        if(change > 599)
+                                        {
+                                            merged_psbt.addOutput({
+                                                address: address,
+                                                value: change
+                                            });
+                                        }
+                                        psbt_ready(merged_psbt);
+                                    });
+                                }
+
+                                function compare( a, b ) {
+                                  if ( a.sats < b.sats ){
+                                    return -1;
+                                  }
+                                  if ( a.sats > b.sats ){
+                                    return 1;
+                                  }
+                                  return 0;
+                                }
+                                spendables.sort(compare);
+
+                                if(spendables.length > 2)
+                                {
+                                    ordit.sdk.api({
+                                        uri: 'utxo/transaction',
+                                        data: { 
+                                            txid: txid,
+                                            options:
+                                            {
+                                                txhex: true,
+                                                notsafetospend: false,
+                                                allowedrarity: ['common']
+                                            }
+                                        },
+                                        network: options.network
+                                    }, function(transaction)
+                                    {
+                                        if(transaction.success)
+                                        {
+                                            seller_address = transaction.rdata.vout[vout].scriptPubKey.address;
+
+                                            var dummy_txs = [];
+                                            var spendable_txs = [];
+
+                                            for(t = 0; t < spendables.length; t++)
+                                            {
+                                                if(t < 2)
+                                                {
+                                                    dummy_txs.push(spendables[t])
+                                                }
+                                                else
+                                                {
+                                                    spendable_txs.push(spendables[t]);
+                                                }
+                                            }
+
+                                            function compared( a, b ) {
+                                              if ( a.sats > b.sats ){
+                                                return -1;
+                                              }
+                                              if ( a.sats < b.sats ){
+                                                return 1;
+                                              }
+                                              return 0;
+                                            }
+                                            spendable_txs.sort(compared);
+
+                                            var ord_tx = transaction.rdata;
+                                            var net_obj = ordit.sdk.network(options.network);
+
+                                            var prepare_dummy_txs = function(txs, callback)
+                                            {
+                                                ordit.sdk.api({
+                                                    uri: 'utxo/transaction',
+                                                    data: { 
+                                                        txid: txs[0].txid,
+                                                        options:
+                                                        {
+                                                            txhex: true,
+                                                            notsafetospend: false,
+                                                            allowedrarity: ['common']
+                                                        }
+                                                    },
+                                                    network: options.network
+                                                }, function(tx1)
+                                                {
+                                                    if(tx1.success)
+                                                    {
+                                                        ordit.sdk.api({
+                                                            uri: 'utxo/transaction',
+                                                            data: { 
+                                                                txid: txs[1].txid,
+                                                                options:
+                                                                {
+                                                                    txhex: true,
+                                                                    notsafetospend: false,
+                                                                    allowedrarity: ['common']
+                                                                }
+                                                            },
+                                                            network: options.network
+                                                        }, function(tx2)
+                                                        {
+                                                            if(tx2.success)
+                                                            {
+                                                                var raw_tx1 = bitcointp.Transaction.fromHex(tx1.rdata.hex);
+                                                                var raw_tx2 = bitcointp.Transaction.fromHex(tx2.rdata.hex);
+                                                                var data1 = 
+                                                                {
+                                                                    hash: tx1.rdata.txid,
+                                                                    index: parseInt(txs[0].n),
+                                                                    nonWitnessUtxo: Buffer.from(tx1.rdata.hex, 'hex'),
+                                                                    sequence: 0xfffffffd // Needs to be at least 2 below max int value to be RBF
+                                                                };
+                                                                var data2 = 
+                                                                {
+                                                                    hash: tx2.rdata.txid,
+                                                                    index: parseInt(txs[1].n),
+                                                                    nonWitnessUtxo: Buffer.from(tx2.rdata.hex, 'hex'),
+                                                                    sequence: 0xfffffffd // Needs to be at least 2 below max int value to be RBF
+                                                                };
+                                                                var sats1 = Math.round(parseFloat(tx1.rdata.vout[txs[0].n].value) * (10 ** 8));
+                                                                var sats2 = Math.round(parseFloat(tx2.rdata.vout[txs[1].n].value) * (10 ** 8));
+                                                                var total_sats = sats1 + sats2;
+
+                                                                var p2tr = bitcointp.payments.p2tr({
+                                                                    internalPubkey: Buffer.from(xkey, 'hex'),
+                                                                    network: net_obj
+                                                                });
+
+                                                                data1.tapInternalKey = Buffer.from(xkey, 'hex');
+                                                                data2.tapInternalKey = Buffer.from(xkey, 'hex');
+                                                                data1.witnessUtxo = 
+                                                                {
+                                                                    script: p2tr.output,
+                                                                    value: sats1
+                                                                };
+                                                                data2.witnessUtxo = 
+                                                                {
+                                                                    script: p2tr.output,
+                                                                    value: sats2
+                                                                };
+
+                                                                var data = 
+                                                                {
+                                                                    inputs: [],
+                                                                    outputs: []
+                                                                }
+
+                                                                data.inputs.push(data1);
+                                                                data.inputs.push(data2);
+                                                                data.outputs.push({
+                                                                    address: address,
+                                                                    value: total_sats
+                                                                });
+
+                                                                callback(data);
+                                                            }
+                                                            else
+                                                            {
+                                                                results.message = tx2.message;
+                                                                callback(results);
+                                                            }
+                                                        });
+                                                    }
+                                                    else
+                                                    {
+                                                        results.message = tx1.message;
+                                                        callback(results);
+                                                    }
+                                                });
+                                            }
+
+                                            prepare_dummy_txs(dummy_txs, function(data)
+                                            {
+                                                var new_psbt = new bitcointp.Psbt({network: net_obj});
+
+                                                for(ins = 0; ins < data.inputs.length; ins++)
+                                                {
+                                                    new_psbt.addInput(data.inputs[ins]);
+                                                }
+                                                for(out = 0; out < data.outputs.length; out++)
+                                                {
+                                                    new_psbt.addOutput(data.outputs[out]);
+                                                }
+
+                                                // Add ordinal output ...
+                                                new_psbt.addOutput({
+                                                    address: address,
+                                                    value: options.postage
+                                                });
+
+                                                // Now need to cover price of ordinal ?
+
+                                                var seller_psbt = bitcointp.Psbt.fromHex(options.psbt, { network: net_obj });
+
+                                                // inputs
+                                                new_psbt.data.globalMap.unsignedTx.tx.ins[2] = seller_psbt.data.globalMap.unsignedTx.tx.ins[0];
+
+                                                new_psbt.data.inputs[2] = seller_psbt.data.inputs[0];
+
+                                                // outputs
+                                                new_psbt.data.globalMap.unsignedTx.tx.outs[2] = seller_psbt.data.globalMap.unsignedTx.tx.outs[0];
+
+                                                new_psbt.data.outputs[2] = seller_psbt.data.outputs[0];
+
+                                                merged_psbts(new_psbt, spendable_txs);
+                                            })
+
+                                           
+                                        }
+                                        else
+                                        {
+                                            results.message = transaction.message;
+                                            callback(results);
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    results.message = 'Minimum of 3 spendables required for instant buy';
+                                    callback(results);
+                                }
+                            }
+                            else
+                            {
+                                results.message = balances.message;
+                                callback(results);
+                            }
+                        });
+                    }
+                    else
+                    {
+                        results.message = 'Invalid location for instant buy';
+                        callback(results);
+                    }
+                }
+                else
+                {
+                    results.message = 'Invalid PSBT for instant buy';
+                    callback(results);
+                }
+            }
+            else if(typeof callback == 'function')
+            {
+                callback(results);
+            }
+        },
+        sell: function(params = {}, callback = false)
+        {   
+            var options = 
+            {
+                key: false, // todo - add support for other input types
+                location: false, // TXID:VOUT of unspent to sell
+                price: 0, // Must be more than 599 satoshis
+                network: 'testnet'
+            };
+            var results = 
+            {
+                success: false,
+                message: 'Invalid inputs for instant.sell',
+                data: false
+            };
+            Object.assign(options, params);
+            if
+            (
+                options.key
+                && parseInt(options.price) > 599
+                && options.location.indexOf(':') > 0
+                && typeof callback == 'function'
+                &&
+                (
+                    options.network == 'mainnet'
+                    || options.network == 'testnet'
+                    || options.network == 'regtest'
+                )
+            )
+            {   
+                options.format = 'p2tr';
+                ordit.sdk.balance.get(options, function(balances)
+                {
+                    if(balances.success)
+                    {
+                        var txid = options.location.split(':')[0];
+                        var address = balances.data.addresses[0].address;
+                        var xkey = balances.data.addresses[0].xkey;
+                        var unspendables = balances.data.unspendables;
+                        var spendables = balances.data.spendables;
+                        var tx = unspendables.find(unspent => unspent.txid == txid);
+
+                        if(typeof tx == 'object')
+                        {
+                            ordit.sdk.api({
+                                uri: 'utxo/transaction',
+                                data: { 
+                                    txid: txid,
+                                    options:
+                                    {
+                                        txhex: true,
+                                        notsafetospend: false,
+                                        allowedrarity: ['common']
+                                    }
+                                },
+                                network: options.network
+                            }, function(transaction)
+                            {
+                                if(transaction.success)
+                                {
+                                    var net_obj = ordit.sdk.network(options.network);
+                                    var full_tx = transaction.rdata;
+                                    var raw_tx = bitcointp.Transaction.fromHex(full_tx.hex);
+                                    
+                                    /*
+                                    if (format !== "p2tr") 
+                                    {
+                                        for (const output in raw_tx.outs) 
+                                        {
+                                          try {
+                                            raw_tx.setWitness(parseInt(output), []);
+                                          } catch {}
+                                        }
+                                    }
+                                    */
+
+                                    var data = 
+                                    {
+                                        hash: tx.txid,
+                                        index: parseInt(tx.n),
+                                        nonWitnessUtxo: Buffer.from(full_tx.hex, 'hex'),
+                                        sequence: 0xfffffffd // Needs to be at least 2 below max int value to be RBF
+                                    };
+                                    var postage = tx.sats;
+
+                                    // Seller sigs ...
+                                    var sighashType = bitcointp.Transaction.SIGHASH_SINGLE | bitcointp.Transaction.SIGHASH_ANYONECANPAY;
+
+                                    var p2tr = bitcointp.payments.p2tr({
+                                        internalPubkey: Buffer.from(xkey, 'hex'),
+                                        network: net_obj
+                                    });
+
+                                    data.tapInternalKey = Buffer.from(xkey, 'hex');
+                                    data.witnessUtxo = 
+                                    {
+                                        script: p2tr.output,
+                                        value: postage
+                                    };
+                                    
+                                    data.sighashType = sighashType;
+
+                                    var inputs = [];
+                                    var outputs = [];
+
+                                    inputs.push(data);
+                                    
+                                    outputs.push({
+                                        address: address,
+                                        value: parseInt(options.price) + postage
+                                    });
+
+                                    var psbt = new bitcointp.Psbt({network: net_obj});
+
+                                    for(ins = 0; ins < inputs.length; ins++)
+                                    {
+                                        psbt.addInput(inputs[ins]);
+                                    }
+                                    for(out = 0; out < outputs.length; out++)
+                                    {
+                                        psbt.addOutput(outputs[out]);
+                                    }
+
+                                    results.success = true;
+                                    results.message = 'Unsigned PSBT attached to data';
+                                    results.data = 
+                                    {
+                                        hex: psbt.toHex(),
+                                        base64: psbt.toBase64()
+                                    };
+                                    callback(results);
+                                }
+                                else
+                                {
+                                    results.message = transaction.message;
+                                    callback(results);
+                                }
+                            });
+                        }
+                        else
+                        {
+                            results.message = 'Unable to find sell location';
+                            callback(results);
+                        }
+                    }
+                    else
+                    {
+                        results.message = balances.message;
+                        callback(results);
+                    }
+                })
+            }
+            else if(typeof callback == 'function')
+            {
+                callback(results);
+            }
+        }
+    },
     sign: function(request = false, params = {})
     {
         return new Promise((resolve, reject) => 
@@ -695,6 +1262,65 @@ exports.sdk =
             }
         }
     },
+    rpc: function(params = {}, callback = false)
+    {
+        var options = 
+        {
+            method: false,
+            data: false,
+            network: 'testnet'
+        };
+        Object.assign(options, params);
+        if(options.method && options.data && options.network && typeof callback == 'function')
+        { 
+            var normalized_callback = function(res)
+            {
+                var results = 
+                {
+                    success: false,
+                    rdata: false
+                };
+                if(typeof res.result == 'object')
+                {
+                    results.success = true;
+                    results.rdata = res.result;
+                }
+                callback(results);
+            }
+            try
+            {
+                var uri = ordit.sdk.config.apis[options.network].rpc;
+                
+                var json_request = 
+                {
+                    jsonrpc: "2.0",
+                    method: options.method,
+                    params: options.data,
+                    id: 0
+                };
+                
+                fetch
+                (
+                    uri, 
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(json_request)
+                    }
+                )
+                .then(response => response.json())
+                .then(response => normalized_callback(response))
+                .catch(response => normalized_callback(false))
+            }
+            catch(err)
+            {
+                callback(false, err);
+            }
+        }
+    },
     dnkeys: function(host = false, callback = false)
     {
         if(host && callback && typeof callback == 'function')
@@ -762,6 +1388,10 @@ exports.sdk =
                                 }
                             }
                         });
+                    }
+                    else
+                    {
+                        callback(results);
                     }
                 }
             });
@@ -955,11 +1585,12 @@ exports.sdk =
                         chain_code.fill(1);
                         
                         var childNodeXOnlyPubkey = false;
+                        var keys = false;
 
                         try
                         {
                             
-                            var keys = bip32ecc.fromPublicKey
+                            keys = bip32ecc.fromPublicKey
                             (
                                 Buffer.from(key, 'hex'),
                                 chain_code,
@@ -971,11 +1602,12 @@ exports.sdk =
                         catch(e)
                         {
                             childNodeXOnlyPubkey = Buffer.from(key, 'hex');
+                            keys = false;
                         }
                         
                         var error = false;
                         
-                        if(keys && options.format == 'all' || options.format == 'p2pkh')
+                        if(keys && (options.format == 'all' || options.format == 'p2pkh'))
                         {
                             try
                             {
@@ -988,7 +1620,7 @@ exports.sdk =
                             }
                             catch(e){ error = e }
                         }
-                        if(keys && options.format == 'all' || options.format == 'p2sh')
+                        if(keys && (options.format == 'all' || options.format == 'p2sh'))
                         {
                             try
                             {
@@ -1004,7 +1636,7 @@ exports.sdk =
                             }
                             catch(e){ error = e }
                         }
-                        if(keys && options.format == 'all' || options.format == 'p2wpkh')
+                        if(keys && (options.format == 'all' || options.format == 'p2wpkh'))
                         {
                             try
                             {
@@ -1017,10 +1649,15 @@ exports.sdk =
                             }
                             catch(e){ error = e }
                         }
-                        if(childNodeXOnlyPubkey && options.format == 'all' || options.format == 'p2tr')
+                        if(childNodeXOnlyPubkey && (options.format == 'all' || options.format == 'p2tr'))
                         {
                             try
                             {
+                                var pub = false;
+                                if(keys)
+                                {
+                                    pub = keys.publicKey.toString('hex');
+                                }
                                 var p2tr = bitcointp.payments.p2tr({
                                     internalPubkey: childNodeXOnlyPubkey,
                                     network: net_obj
@@ -1029,10 +1666,10 @@ exports.sdk =
                                     address: p2tr.address,
                                     xkey: childNodeXOnlyPubkey.toString('hex'),
                                     format: 'taproot',
-                                    pub: keys.publicKey.toString('hex')
+                                    pub: pub
                                 });
                             }
-                            catch(e){ error = e }
+                            catch(e){ error = e; console.info('error', error) }
                         }
                         if(addresses.length > 0)
                         {
@@ -1252,7 +1889,7 @@ exports.sdk =
             Object.assign(options, params);
             if
             (
-                (options.seed || options.key || options.connect || options.bip39) 
+                (options.seed || options.key || options.connect || options.bip39 || options.address) 
                 && options.network && options.format && typeof callback == 'function'
 
                 // be sure only one of the four inputs is used ...
@@ -1277,6 +1914,18 @@ exports.sdk =
                 };
                 ordit.sdk.wallet.get(options, function(w)
                 {
+                    if(!w.success && options.address)
+                    {
+                        w.success = true;
+                        w.data = 
+                        {
+                            addresses: [
+                                {
+                                    address: options.address
+                                }
+                            ]
+                        }
+                    }
                     if(w.success)
                     {
                         var ordinals = [];
@@ -1315,191 +1964,250 @@ exports.sdk =
                             var wallet_unspendables = 0;
                             var wallet_collections = 0;
 
-                            ordit.sdk.api({
-                                uri: 'utxo/unspents',
+                            ordit.sdk.rpc({
+                                method: 'GetUnspents',
                                 data: { 
+                                    format: 'next',
                                     address: address,
                                     options:
                                     {
+                                        ord: true,
                                         oips: true,
                                         txhex: true,
-                                        notsafetospend: false,
+                                        safetospend: false,
                                         allowedrarity: ['common']
+                                    },
+                                    pagination: 
+                                    {
+                                        page: 1,
+                                        limit: 10
                                     }
                                 },
                                 network: options.network
                             }, function(unspent)
                             {
+                                console.log('unspent', unspent);
                                 if(unspent.success)
                                 {
-                                    wallet.addresses[i].unspents = unspent.rdata;
-                                }
-                                wallet.counts.unspents+= wallet.addresses[i].unspents.length;
-                                wallet_unspents+= wallet.addresses[i].unspents.length;
-                                for(u = 0; u < wallet.addresses[i].unspents.length; u++)
-                                {
-                                    wallet.addresses[i].unspents[u].pub = wallet.addresses[i].pub;
-                                    var un = wallet.addresses[i].unspents[u];
-                                    wallet.counts.satoshis+= un.sats;
-                                    wallet_satoshis+= un.sats;
-                                    if(un.safeToSpend)
-                                    {
-                                        wallet.counts.cardinals+= un.sats;
-                                        wallet_cardinals+= un.sats;
-                                        wallet.counts.spendables++;
-                                        wallet_spendables++;
-                                        spendables.push(un);
-                                    }
-                                    else
-                                    {
-                                        wallet.counts.unspendables++;
-                                        wallet_unspendables++;
-                                        unspendables.push(un);
-                                    }
+                                    wallet.addresses[i].unspents = unspent.rdata.unspents;
 
-                                    var ord = un.ordinals;
-                                    var ins = un.inscriptions;
-
-                                    for(od = 0; od < ord.length; od++)
+                                    wallet.counts.unspents+= wallet.addresses[i].unspents.length;
+                                    wallet_unspents+= wallet.addresses[i].unspents.length;
+                                    for(u = 0; u < wallet.addresses[i].unspents.length; u++)
                                     {
-                                        ord[od].address = address;
-                                        ord[od].unspent = un.txid;
-                                        
-                                        var safeToSpend = true;
-                                        for(is1 = 0; is1 < ins.length; is1++)
+                                        wallet.addresses[i].unspents[u].pub = wallet.addresses[i].pub;
+                                        var un = wallet.addresses[i].unspents[u];
+
+                                        un.fees = parseFloat(un.sats / (10 ** 8)).toFixed(8);
+
+                                        wallet.counts.satoshis+= un.sats;
+                                        wallet_satoshis+= un.sats;
+                                        if(un.safeToSpend)
                                         {
+                                            wallet.counts.cardinals+= un.sats;
+                                            wallet_cardinals+= un.sats;
+                                            wallet.counts.spendables++;
+                                            wallet_spendables++;
+                                            spendables.push(un);
+                                        }
+                                        else
+                                        {
+                                            wallet.counts.unspendables++;
+                                            wallet_unspendables++;
+                                            unspendables.push(un);
+                                        }
+
+                                        var ord = un.ordinals;
+                                        var ins = un.inscriptions;
+
+                                        for(od = 0; od < ord.length; od++)
+                                        {
+                                            ord[od].address = address;
+                                            ord[od].unspent = un.txid;
+                                            ord[od].value = parseFloat(ord[od].size / (10 ** 8));
+
+                                            var safeToSpend = true;
+                                            for(is1 = 0; is1 < ins.length; is1++)
+                                            {
+                                                if
+                                                (
+                                                    ins[is1].sat == ord[od].number
+                                                    || ord[od].rarity != 'common'
+                                                )
+                                                {
+                                                    safeToSpend = false;
+                                                }
+                                            }
+                                            ord[od].safeToSpend = safeToSpend;
+
+                                            ordinals.push(ord[od]);
+                                        }
+                                        for(is = 0; is < ins.length; is++)
+                                        {
+                                            ins[is].fake = false;
+                                            ins[is].verified = false;
+                                            ins[is].unspent = un.txid;
+                                            ins[is].sid = un.txid + ':' + un.n;
+                                            ins[is].fees = parseFloat(ins[is].fee / (10 ** 8)).toFixed(8);
+
                                             if
                                             (
-                                                ins[is1].sat == ord[od].number
-                                                || ord[od].rarity != 'common'
+                                                typeof jQuery != 'undefined' 
+                                                && typeof jQuery.timeago == 'function'
                                             )
                                             {
-                                                safeToSpend = false;
+                                                ins[is].ago = jQuery.timeago(ins[is].timestamp * 1000);
                                             }
-                                        }
-                                        ord[od].safeToSpend = safeToSpend;
-                                        
-                                        ordinals.push(ord[od]);
-                                    }
-                                    for(is = 0; is < ins.length; is++)
-                                    {
-                                        ins[is].fake = false;
-                                        ins[is].verified = false;
-                                        if
-                                        (
-                                            typeof ins[is].meta == 'object'
-                                            && typeof ins[is].meta.p != 'undefined'
-                                            && typeof ins[is].meta.ty != 'undefined'
-                                            && ins[is].meta.ty == 'col'
-                                            && ins[is].meta.p == 'vord'
-                                        )
-                                        {
-                                            collections.push(ins[is]);
-                                            wallet_collections++;
-                                        }
-                                        else if
-                                        (
-                                            typeof ins[is].meta == 'object'
-                                            && typeof ins[is].meta.p != 'undefined'
-                                            && typeof ins[is].meta.ty != 'undefined'
-                                            && typeof ins[is].meta.sig != 'undefined'
-                                            && ins[is].meta.ty == 'insc'
-                                            && ins[is].meta.p == 'vord'
-                                        )
-                                        {   
-                                            ordit.sdk.message.verify({
-                                                address: ins[is].meta.pub1,
-                                                message: ins[is].meta.col + ' ' + ins[is].meta.iid + ' ' + ins[is].meta.nonce,
-                                                signature: ins[is].meta.sig,
-                                                network: options.network
-                                            },  function(verified)
+
+                                            if
+                                            (
+                                                typeof ins[is].meta == 'object'
+                                                && typeof ins[is].meta.p != 'undefined'
+                                                && typeof ins[is].meta.ty != 'undefined'
+                                                && ins[is].meta.ty == 'col'
+                                                && ins[is].meta.p == 'vord'
+                                            )
                                             {
-                                                if(verified.success)
+                                                collections.push(ins[is]);
+                                                wallet_collections++;
+                                            }
+                                            else if
+                                            (
+                                                typeof ins[is].meta == 'object'
+                                                && typeof ins[is].meta.p != 'undefined'
+                                                && typeof ins[is].meta.ty != 'undefined'
+                                                && typeof ins[is].meta.sig != 'undefined'
+                                                && ins[is].meta.ty == 'insc'
+                                                && ins[is].meta.p == 'vord'
+                                            )
+                                            {   
+                                                ordit.sdk.message.verify({
+                                                    address: ins[is].meta.publ,
+                                                    message: ins[is].meta.col + ' ' + ins[is].meta.iid + ' ' + ins[is].meta.nonce,
+                                                    signature: ins[is].meta.sig,
+                                                    network: options.network
+                                                },  function(verified)
                                                 {
-                                                    ins[is].verified = true;
-                                                    verifieds.push(ins[is]);
-                                                }
-                                                else
-                                                {
-                                                    ins[is].fake = true;
-                                                }
-                                            })
+                                                    if(verified.success)
+                                                    {
+                                                        ins[is].verified = true;
+                                                        verifieds.push(ins[is]);
+                                                    }
+                                                    else
+                                                    {
+                                                        ins[is].fake = true;
+                                                    }
+                                                })
+                                            }
+                                            ins[is].address = address;
+                                            ins[is].value = parseFloat((ins[is].fee + un.sats) / (10 ** 8));
+
+                                            if(typeof ins[is].media_type == 'undefined' && typeof ins[is].mediaType != 'undefined')
+                                            {
+                                                ins[is].media_type = ins[is].mediaType;
+                                            }
+                                            if(typeof ins[is].media_content == 'undefined' && typeof ins[is].mediaContent != 'undefined')
+                                            {
+                                                ins[is].media_content = ins[is].mediaContent;
+                                            }
+                                            if(typeof ins[is].media_size == 'undefined' && typeof ins[is].mediaSize != 'undefined')
+                                            {
+                                                ins[is].media_size = ins[is].mediaSize;
+                                            }
+
+                                            ins[is].formats = 
+                                            {
+                                                image: false,
+                                                audio: false,
+                                                video: false,
+                                                html: false,
+                                                text: false
+                                            }
+                                            if(ins[is].media_type.indexOf('image') === 0)
+                                            {
+                                                ins[is].formats.image = true;
+                                                ins[is].type = 'image';
+                                            }
+                                            else if(ins[is].media_type.indexOf('audio') === 0)
+                                            {
+                                                ins[is].formats.audio = true;
+                                                ins[is].type = 'audio';
+                                            }
+                                            else if(ins[is].media_type.indexOf('video') === 0)
+                                            {
+                                                ins[is].formats.video = true;
+                                                ins[is].type = 'video';
+                                            }
+                                            else if(ins[is].media_type.indexOf('text/html') === 0)
+                                            {
+                                                ins[is].formats.html = true;
+                                                ins[is].type = 'html';
+                                            }
+                                            else if
+                                            (
+                                                ins[is].media_type.indexOf('text') === 0
+                                                || ins[is].media_type.indexOf('json') > -1
+                                            )
+                                            {
+                                                ins[is].formats.text = true;
+                                                ins[is].type = 'text';
+                                            }
+
+                                            inscriptions.push(ins[is]);
                                         }
-                                        ins[is].address = address;
-                                        ins[is].unspent = un.txid;
-                                        ins[is].value = parseFloat((ins[is].fee + un.sats) / (10 ** 8));
-                                        
-                                        ins[is].formats = 
+                                    }
+                                    wallet.spendables = spendables;
+                                    wallet.unspendables = unspendables;
+                                    wallet.ordinals = ordinals;
+                                    wallet.inscriptions = inscriptions;
+                                    wallet.collections = collections;
+                                    wallet.verifieds = verifieds;
+
+                                    wallet.counts.ordinals = ordinals.length;
+                                    wallet.counts.inscriptions = inscriptions.length;
+                                    wallet.counts.collections = collections.length;
+                                    wallet.counts.verifieds = verifieds.length;
+
+                                    wallet.addresses[i].counts = 
+                                    {
+                                        unspents: wallet_unspents,
+                                        satoshis: wallet_satoshis,
+                                        cardinals: wallet_cardinals,
+                                        spendables: wallet_spendables,
+                                        unspendables: wallet_unspendables,
+                                        collections: wallet_collections
+                                    };
+
+                                    // ++
+                                    completed++;
+                                    if(completed == wallet.addresses.length)
+                                    {
+                                        wallet.dashboard = 
                                         {
-                                            image: false,
-                                            audio: false,
-                                            video: false,
-                                            html: false,
-                                            text: false
+                                            satoshis: wallet.counts.satoshis.toLocaleString('en-GB'),
+                                            cardinals: wallet.counts.cardinals.toLocaleString('en-GB'),
                                         }
-                                        if(ins[is].media_type.indexOf('image') === 0)
-                                        {
-                                            ins[is].formats.image = true;
-                                            ins[is].type = 'image';
-                                        }
-                                        else if(ins[is].media_type.indexOf('audio') === 0)
-                                        {
-                                            ins[is].formats.audio = true;
-                                            ins[is].type = 'audio';
-                                        }
-                                        else if(ins[is].media_type.indexOf('video') === 0)
-                                        {
-                                            ins[is].formats.video = true;
-                                            ins[is].type = 'video';
-                                        }
-                                        else if(ins[is].media_type.indexOf('text/html') === 0)
-                                        {
-                                            ins[is].formats.html = true;
-                                            ins[is].type = 'html';
-                                        }
-                                        else if
-                                        (
-                                            ins[is].media_type.indexOf('text') === 0
-                                            || ins[is].media_type.indexOf('json') > -1
-                                        )
-                                        {
-                                            ins[is].formats.text = true;
-                                            ins[is].type = 'text';
-                                        }
-                                        
-                                        inscriptions.push(ins[is]);
+                                        results.success = true;
+                                        results.message = 'Wallet lookup attached to data';
+                                        results.data = wallet;
+                                        callback(results);
                                     }
                                 }
-                                wallet.spendables = spendables;
-                                wallet.unspendables = unspendables;
-                                wallet.ordinals = ordinals;
-                                wallet.inscriptions = inscriptions;
-                                wallet.collections = collections;
-                                wallet.verifieds = verifieds;
-                                
-                                wallet.counts.ordinals = ordinals.length;
-                                wallet.counts.inscriptions = inscriptions.length;
-                                wallet.counts.collections = collections.length;
-                                wallet.counts.verifieds = verifieds.length;
-
-                                wallet.addresses[i].counts = 
+                                else
                                 {
-                                    unspents: wallet_unspents,
-                                    satoshis: wallet_satoshis,
-                                    cardinals: wallet_cardinals,
-                                    spendables: wallet_spendables,
-                                    unspendables: wallet_unspendables,
-                                    collections: wallet_collections
-                                };
-
-                                // ++
-                                completed++;
-                                if(completed == wallet.addresses.length)
-                                {
-                                    results.success = true;
-                                    results.message = 'Wallet lookup attached to data';
-                                    results.data = wallet;
-                                    callback(results);
+                                    completed++;
+                                    if(completed == wallet.addresses.length)
+                                    {
+                                        wallet.dashboard = 
+                                        {
+                                            satoshis: wallet.counts.satoshis.toLocaleString('en-GB'),
+                                            cardinals: wallet.counts.cardinals.toLocaleString('en-GB'),
+                                        }
+                                        results.success = true;
+                                        results.message = 'Wallet lookup attached to data';
+                                        results.data = wallet;
+                                        callback(results);
+                                    }
                                 }
                             });
                         });
@@ -1854,7 +2562,10 @@ exports.sdk =
                 hex: false,
                 base64: false,
                 network: 'testnet',
-                extracted: true
+                extracted: true,
+                finalized: false,
+                sighashType: false,
+                signingIndexes: false
             };
             Object.assign(options, params);
             if
@@ -1975,27 +2686,74 @@ exports.sdk =
                                     )
                                 );
                                 
-                                console.log('options', options);
-                                console.log('psbt', psbt);
+                                var test_auto_tweaking_for_dummies = true;
                                 
                                 for(i = 0; i < psbt.inputCount; i++)
                                 {
-                                    if(typeof options.tweaked != 'undefined' && options.tweaked === true)
+                                    var needs_tweaking = false;
+                                    if(typeof options.signingIndexes == 'object')
                                     {
-                                        try
+                                        for(si = 0; si < options.signingIndexes.length; si++)
                                         {
-                                            console.log('here?');
-                                            psbt.signInput(i, tweaked_key);
+                                            if(options.signingIndexes[si] == i)
+                                            {
+                                                needs_tweaking = true;
+                                            }
                                         }
-                                        catch(e){ error = e; console.log('e1?', e); }
                                     }
-                                    else
+                                    if
+                                    (
+                                        // TODO - enable options for selecting which inputs to sign ?
+                                        
+                                        (typeof options.tweaked != 'undefined' && options.tweaked === true)
+                                        ||
+                                        needs_tweaking
+                                        ||
+                                        (
+                                            test_auto_tweaking_for_dummies
+                                            && i == 1
+                                            && psbt.data.globalMap.unsignedTx.tx.ins.length == 2
+                                            && psbt.data.globalMap.unsignedTx.tx.outs.length == 2
+                                            && psbt.data.inputs.length == 2
+                                            && typeof psbt.data.inputs[0].tapLeafScript != 'undefined'
+                                            && typeof psbt.data.inputs[1].tapLeafScript == 'undefined'
+                                        )
+                                    )
                                     {
                                         try
                                         {
-                                            psbt.signInput(i, full_keys.parent);
+                                            if(options.sighashType)
+                                            {
+                                                psbt.signInput(i, tweaked_key, [options.sighashType]);
+                                            }
+                                            else
+                                            {
+                                                psbt.signInput(i, tweaked_key);
+                                            }
                                         }
-                                        catch(e){ error = e; console.log('e2?', e); }
+                                        catch(e){ error = e; console.info('e1?', e); }
+                                    }
+                                    else if(typeof options.tweaked == 'undefined' || !options.tweaked)
+                                    {
+                                        try
+                                        {
+                                            if(typeof options.signingIndexes != 'object')
+                                            {
+                                                if(options.sighashType)
+                                                {
+                                                    psbt.signInput(i, full_keys.parent, [options.sighashType]);
+                                                }
+                                                else
+                                                {
+                                                    psbt.signInput(i, full_keys.parent);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                //psbt.signInput(i, full_keys.parent);
+                                            }
+                                        }
+                                        catch(e){ error = e; console.info('e2?', e); }
                                     }
                                 }
                                 
@@ -2043,8 +2801,10 @@ exports.sdk =
                                         {
                                             try
                                             {
-                                                psbt.finalizeAllInputs();
-                                                console.log('UNFINAL?');
+                                                if(options.finalized)
+                                                {
+                                                    psbt.finalizeAllInputs();
+                                                }
                                                 psbt_data = 
                                                 {
                                                     hex: psbt.toHex(),
@@ -2462,7 +3222,19 @@ exports.sdk =
                         || network == 'testnet'
                     )
                 )
-                || wallet == 'metamask'
+                || 
+                ( 
+                    (
+                        wallet == 'metamask'
+                        || wallet == 'saline'
+                    )
+                    &&
+                    (
+                        network == 'mainnet'
+                        || network == 'testnet'
+                        || network == 'regtest'
+                    )
+                )
             )
             {
                 supported = true;
@@ -2962,6 +3734,167 @@ exports.sdk =
             }
         }
     },
+    saline:
+    {
+        key: function(params = {}, callback = false)
+        {
+            var options = 
+            {
+                path: false,
+                network: 'testnet'
+            };
+            Object.assign(options, params);
+            if(options.network && typeof callback == 'function')
+            {
+                var results =
+                {
+                    success: false,
+                    message: 'Saline not installed',
+                    data: false
+                };
+                if(typeof window.SalineSDK != 'undefined')
+                {
+                    window.SalineSDK({action: 'getAddresses', options: options}, function(d)
+                    {
+                        var data = false;
+                        try
+                        {
+                            data = JSON.parse(d);
+                        }
+                        catch(e){}
+                        callback(data);
+                    });
+                }
+                else
+                {
+                    callback(results);
+                }
+            }
+            else
+            {
+                if(typeof callback == 'function')
+                {
+                    callback({
+                        success: false,
+                        message: 'Invalid options for saline.key',
+                        data: false
+                    })
+                }
+            }
+        },
+        sign: function(params = {}, callback = false)
+        {
+            var options = 
+            {
+                psbt: false,
+                msg: false
+            };
+            Object.assign(options, params);
+            if(typeof options.psbt == 'object' && typeof callback == 'function')
+            {
+                var results =
+                {
+                    success: false,
+                    message: 'Saline not installed for signing',
+                    data: false
+                };
+                
+                if(typeof window.SalineSDK != 'undefined')
+                {
+                    window.SalineSDK
+                    (
+                        {
+                            action: 'signTransaction', 
+                            options: options
+                        },  function(d)
+                    {
+                        var data = false;
+                        try
+                        {
+                            data = JSON.parse(d);
+                        }
+                        catch(e){}
+                        var res = JSON.parse(data.options);
+                        res.action = 'signTransaction';
+                        callback(res);
+                    });
+                }
+                else
+                {
+                    callback(results);
+                }
+            }
+            else
+            {
+                if(typeof callback == 'function')
+                {
+                    callback({
+                        success: false,
+                        message: 'Invalid options for saline.sign',
+                        data: false
+                    })
+                }
+            }
+        },
+        message: function(params = {}, callback = false)
+        {
+            var options = 
+            {
+                connect: false,
+                message: false,
+                network: 'testnet'
+            };
+            Object.assign(options, params);
+            if
+            (
+                options.connect == 'saline'
+                && options.network 
+                && options.message 
+                && typeof callback == 'function'
+            )
+            {
+                var results =
+                {
+                    success: false,
+                    message: 'The saline wallet cannot support message signing',
+                    data: false
+                };
+                
+                if(typeof window.SalineSDK != 'undefined')
+                {
+                    window.SalineSDK
+                    (
+                        {
+                            action: 'signMessage', 
+                            options: options
+                        },  function(d)
+                    {
+                        var data = false;
+                        try
+                        {
+                            data = JSON.parse(d);
+                        }
+                        catch(e){}
+                        var res = JSON.parse(data.options);
+                        res.action = 'signMessage';
+                        callback(res);
+                    });
+                }
+                else
+                {
+                    results.message = 'Saline not installed for messages';
+                }
+            }
+            else if(typeof callback == 'function')
+            {
+                callback({
+                    data: false,
+                    success: false,
+                    message: 'Invalid options for saline.message'
+                })
+            }
+        }
+    },
     unisat:
     {
         key: function(params = {}, callback = false)
@@ -3142,6 +4075,10 @@ exports.sdk =
                             results.message = 'Unable to sign using unisat';
                             callback(results);
                         }
+                    }).catch(function(e)
+                    {
+                        results.message = 'Unisat rejected signing process';
+                        callback(results);
                     });
                 }
                 else
@@ -3200,8 +4137,8 @@ exports.sdk =
                         else
                         {
                             results.message = 'Unable to sign message via unisat';
-                            callback(results);
                         }
+                        callback(results);
                     });
                 }
                 else
@@ -3532,7 +4469,18 @@ exports.sdk =
                         },
                         onFinish: (response) => 
                         {
-                            console.info('TODO,response', response);
+                            if(response)
+                            {
+                                results.success = true;
+                                results.message = 'Signatures attached to data';
+                                results.data = 
+                                {
+                                    base64: response,
+                                    hex: Buffer.from(response, 'base64').toString('hex'),
+                                    address: options.address
+                                }
+                            }
+                            callback(results);
                         },
                         onCancel: () => 
                         {
@@ -3756,7 +4704,8 @@ exports.sdk =
                 media_type: 'text/plain;charset=utf-8',
                 network: 'testnet',
                 meta: false,
-                recovery: false
+                recovery: false,
+                dummies: false
             };
             Object.assign(options, params);
             if
@@ -3936,11 +4885,6 @@ exports.sdk =
                                     output: recovery_script
                                 }
                             ];
-                            
-                            var script_tree2 = 
-                            {
-                                output: witness_script
-                            };
 
                             var redeem_script = {
                                 output: witness_script,
@@ -3962,15 +4906,28 @@ exports.sdk =
                                 network: net_obj
                             });
                             
-                            ordit.sdk.api({
-                                uri: 'utxo/unspents',
+                            var dummy = bitcointp.payments.p2tr({
+                                internalPubkey: full_keys.xkey,
+                                network: net_obj
+                            });
+                            
+                            ordit.sdk.rpc({
+                                method: 'GetUnspents',
                                 data: { 
+                                    format: 'next',
                                     address: inscribe.address,
                                     options:
                                     {
+                                        ord: true,
+                                        oips: true,
                                         txhex: true,
-                                        notsafetospend: false,
+                                        safetospend: false,
                                         allowedrarity: ['common']
+                                    },
+                                    pagination: 
+                                    {
+                                        page: 1,
+                                        limit: 25
                                     }
                                 },
                                 network: options.network
@@ -3981,6 +4938,7 @@ exports.sdk =
                                     var unspents = unspent.rdata;
                                     var fees_for_witness_data = options.fees;
                                     var got_suitable_unspent = [];
+                                    var spare_unspents = [];
                                     var sats_per_byte = 10;
                                     var sats_in = 0;
                                     
@@ -4007,6 +4965,10 @@ exports.sdk =
                                                 sats_in = unspents[u].sats;
                                                 got_suitable_unspent[0] = unspents[u];
                                             }
+                                        }
+                                        else
+                                        {
+                                            spare_unspents.push(unspents[u]);
                                         }
                                     }
                                     
@@ -4049,7 +5011,6 @@ exports.sdk =
                                                         }
                                                     ]
                                                 });
-                                                
                                             });
 
                                             if(!options.recovery)
@@ -4077,14 +5038,114 @@ exports.sdk =
                                                 });
                                             }
                                             
-                                            results.success = true;
-                                            results.message = 'Unsigned PSBT attached to data';
-                                            results.data = 
+                                            if(options.dummies === true)
                                             {
-                                                hex: psbt.toHex(),
-                                                base64: psbt.toBase64()
-                                            };
-                                            callback(results);
+                                                // Extra in and extra out ...
+                                                ordit.sdk.balance.get({
+                                                    key: full_keys.pub,
+                                                    format: 'p2tr',
+                                                    network: options.network
+                                                }, function(w)
+                                                {
+                                                    if(w.success)
+                                                    {
+                                                        var spendables = w.data.spendables;
+                                                        if(spendables.length > 0)
+                                                        {
+                                                            var suitable_spendable = false;
+                                                            for(ss = 0; ss < spendables.length; ss++)
+                                                            {
+                                                                if(spendables[ss].sats > 599)
+                                                                {
+                                                                    suitable_spendable = spendables[ss];
+                                                                }
+                                                            }
+                                                            if(suitable_spendable)
+                                                            {
+                                                                ordit.sdk.api({
+                                                                    uri: 'utxo/transaction',
+                                                                    data: { 
+                                                                        txid: suitable_spendable.txid,
+                                                                        options:
+                                                                        {
+                                                                            txhex: true,
+                                                                            notsafetospend: false,
+                                                                            allowedrarity: ['common']
+                                                                        }
+                                                                    },
+                                                                    network: options.network
+                                                                }, function(this_tx)
+                                                                {   
+                                                                    if(this_tx.success)
+                                                                    {
+                                                                        var raw = bitcointp.Transaction.fromHex(this_tx.rdata.hex);
+                                                                        var d = 
+                                                                        {
+                                                                            hash: this_tx.rdata.txid,
+                                                                            index: parseInt(suitable_spendable.n),
+                                                                            nonWitnessUtxo: Buffer.from(this_tx.rdata.hex, 'hex'),
+                                                                            sequence: 0xfffffffd // Needs to be at least 2 below max int value to be RBF
+                                                                        };
+                                                                        var sats = Math.round(parseFloat(this_tx.rdata.vout[suitable_spendable.n].value) * (10 ** 8));
+
+                                                                        d.tapInternalKey = Buffer.from(full_keys.xkey, 'hex');
+                                                                        d.witnessUtxo = 
+                                                                        {
+                                                                            script: dummy.output,
+                                                                            value: sats
+                                                                        };
+                                                                        psbt.addInput(d);
+                                                                        psbt.addOutput({
+                                                                            address: dummy.address,
+                                                                            value: sats
+                                                                        });
+                                                                        
+                                                                        results.success = true;
+                                                                        results.message = 'Unsigned PSBT attached to data';
+                                                                        results.data = 
+                                                                        {
+                                                                            hex: psbt.toHex(),
+                                                                            base64: psbt.toBase64()
+                                                                        };
+                                                                        callback(results);
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        results.message = this_tx.message;
+                                                                        callback(results);
+                                                                    }
+                                                                });
+                                                            }
+                                                            else
+                                                            {
+                                                                results.message = 'Unable to find suitable spendable';
+                                                                callback(results);
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            results.message = 'No spendables available';
+                                                            callback(results);
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        results.message = w.message;
+                                                        callback(results);
+                                                    }
+                                                });
+                                            }
+                                            else
+                                            {
+                                                results.success = true;
+                                                results.message = 'Unsigned PSBT attached to data';
+                                                results.data = 
+                                                {
+                                                    hex: psbt.toHex(),
+                                                    base64: psbt.toBase64()
+                                                };
+                                                callback(results);
+                                            }
                                         }
                                         catch(e)
                                         {
@@ -4346,10 +5407,13 @@ exports.sdk =
             var options = 
             {
                 seed: false, // TODO - support other inputs
+                key: false, // TODO - support other inputs
                 
                 location: false, // location of item for sale TXID:VOUT FORMAT
                 cardinals: 0, // integer value of sats to sell location for
+                ts: 0,
                 
+                instant: false,
                 network: 'testnet'
             };
             var results = 
@@ -4362,22 +5426,25 @@ exports.sdk =
             if
             (
                 options.network && typeof callback == 'function'
+                && (options.seed || options.key)
                 && typeof ordit.sdk.config.apis[options.network] == 'object'
                 && typeof ordit.sdk.config.apis[options.network].orderbook != 'undefined'
             )
             {
                 results.message = 'No pending orders available';
                 var orderbook = ordit.sdk.config.apis[options.network].orderbook;
+                options.format = 'p2tr';
                 
-                ordit.sdk.wallet.get({
-                    seed: options.seed,
-                    network: options.network,
-                    format: 'p2tr' // taproot
-                },  function(w)
+                ordit.sdk.wallet.get(options,  function(w)
                 {
                     if(w.success)
                     {
                         var ts = new Date().getTime();
+                        
+                        if(options.ts)
+                        {
+                            ts = options.ts
+                        }
                         var rpc_request = 
                         {
                             jsonrpc: "2.0",
@@ -4396,163 +5463,367 @@ exports.sdk =
                                 },
                                 signature: {
                                     value: false,
-                                    format: "psbt",
-                                    pubkey: false
+                                    format: "ordit",
+                                    pubkey: w.data.keys[0].pub
                                 },
-                                fees: {
-                                    network: 1000,
-                                    rate: 15
-                                }
+                                satsPerByte: 15
                             },
                             id: 0
                         };
                         
-                        var chain_code = new Buffer(32);
-                        chain_code.fill(1);
-
-                        var childNodeXOnlyPubkey = false;
-
-                        try
+                        if(options.instant === true)
                         {
-
-                            var net_obj = ordit.sdk.network(options.network);
-                            var keys = bip32ecc.fromPublicKey
-                            (
-                                Buffer.from(w.data.keys[0].pub, 'hex'),
-                                chain_code,
-                                net_obj
-                            );
-                            childNodeXOnlyPubkey = keys.publicKey.slice(1, 33).toString('hex');
-                            rpc_request.params.signature.pubkey = childNodeXOnlyPubkey;
-                        }
-                        catch(e){}
-                        
-                        var sig_request = 
-                        {
-                            jsonrpc: "2.0",
-                            method: "CreateSignablePsbt",
-                            params: 
-                            {
-                                network: options.network,
+                            ordit.sdk.instant.sell({
+                                key: w.data.keys[0].pub,
                                 location: options.location,
-                                maker: w.data.addresses[0].address,
-                                pubkey: childNodeXOnlyPubkey
-                            },
-                            id: 0
-                        };
-                        
-                        ordit.sdk.api({
-                            uri: 'sado/rpc',
-                            url: 'https://api.sado.space/rpc',
-                            data: sig_request,
-                            network: options.network
-                        }, function(sigs)
-                        {
-                            if(sigs.result)
+                                price: options.cardinals,
+                                network: options.network
+                            }, function(sell)
                             {
-                                var psbt_to_sign = sigs.result;
-                                
-                                ordit.sdk.psbt.sign({
-                                    seed: options.seed,
-                                    hex: Buffer.from(psbt_to_sign, 'base64').toString('hex'),
-                                    network: options.network,
-                                    tweaked: true,
-                                    extracted: false
-                                }, function(signed)
+                                if
+                                (
+                                    sell.success && options.key 
+                                    && typeof options.hex != 'undefined'
+                                    && typeof options.sig != 'undefined'
+                                )
                                 {
-                                    console.log('signed', signed);
-                                    if(signed.success)
+                                    rpc_request.params.signature.value = options.sig;
+                                    rpc_request.params.order.instant = options.hex;
+                                                    
+                                    ordit.sdk.api({
+                                        uri: 'sado/rpc',
+                                        data: rpc_request,
+                                        network: options.network
+                                    }, function(sado)
                                     {
-                                        if(typeof signed.data.hex != 'undefined' && signed.data.hex)
+                                        if(typeof sado.result != 'undefined')
                                         {
-                                            console.log('A');
-                                            rpc_request.params.signature.value = signed.data.hex;
-                                        }
-                                        else if(typeof signed.data.psbt == 'object' && typeof signed.data.psbt.base64 != 'undefined')
-                                        {
-                                            console.log('B');
-                                            rpc_request.params.signature.value = signed.data.psbt.base64;
+                                            results.success = true;
+                                            results.message = 'Unsigned PSBT attached to data';
+                                            results.data =
+                                            {
+                                                base64: sado.result.psbt,
+                                                hex: Buffer.from(sado.result.psbt, 'base64').toString('hex')
+                                            }
+                                            callback(results);
                                         }
                                         else
                                         {
-                                            console.log('C');
-                                        }
-                                        
-                                        ordit.sdk.api({
-                                            uri: 'sado/rpc',
-                                            data: rpc_request,
-                                            network: options.network
-                                        }, function(sado)
-                                        {
-                                            console.log('sado', sado);
+                                            results.message = 'Unable to create sado order';
                                             if
                                             (
-                                                typeof sado.result != 'undefined'
-                                                && typeof sado.result.psbt != 'undefined'
+                                                typeof sado.error == 'object'
+                                                && typeof sado.error.data != 'undefined'
                                             )
                                             {
-                                                ordit.sdk.psbt.sign({
-                                                    seed: options.seed,
-                                                    base64: sado.result.psbt,
-                                                    network: options.network,
-                                                    tweaked: true
-                                                },  function(signed_psbt)
-                                                {
-                                                    console.log('signed_psbt', signed_psbt);
-                                                    console.log('check if safe to spend ?');
-                                                    
-                                                    if(signed_psbt.success)
-                                                    {
-                                                        ordit.sdk.txid.get({
-                                                            hex: signed_psbt.data.hex,
-                                                            network: options.network
-                                                        }, 
-                                                        function(relayed)
-                                                        {
-                                                            if(relayed.success)
-                                                            {
-                                                                results.success = true;
-                                                                results.message = 'TXID attached to data';
-                                                                results.data = 
-                                                                {
-                                                                    txid: relayed.data.txid
-                                                                };
-                                                                callback(results);
-                                                            }
-                                                            else
-                                                            {
-                                                                results.message = 'Unable to relay commit';
-                                                                callback(results);
-                                                            }
-                                                        });
-                                                    }
-                                                    else
-                                                    {
-                                                        results.message = signed_psbt.message;
-                                                        callback(results);
-                                                    }
-                                                });
+                                                results.message = sado.error.data;
                                             }
-                                            else
+                                            callback(results);
+                                        }
+                                    });
+                                }
+                                else if(sell.success && options.key && typeof options.hex != 'undefined')
+                                {
+                                    rpc_request.params.order.instant = options.hex;
+                                    
+                                    var sign_request = JSON.parse(JSON.stringify(rpc_request));
+                                    sign_request.method = 'CreateSignableMessage';
+                                    sign_request.params = rpc_request.params.order;
+                                    
+                                    ordit.sdk.api({
+                                        uri: 'sado/rpc',
+                                        data: sign_request,
+                                        network: options.network
+                                    }, function(sado)
+                                    {   
+                                        if
+                                        (
+                                            typeof sado.result != 'undefined'
+                                        )
+                                        {
+                                            var order_to_sign = JSON.stringify(rpc_request.params.order);
+
+                                            results.success = true;
+                                            results.message = 'Unsigned order attached to data';
+                                            results.data = 
                                             {
-                                                results.message = 'Unable to construct PSBT';
-                                                callback(results);
+                                                json: sado.result
                                             }
-                                        });
-                                    }
-                                    else
+                                            callback(results);
+                                        }
+                                    });
+                                }
+                                else if(sell.success && options.key)
+                                {
+                                    results.success = true;
+                                    results.message = 'Unsigned PSBT attached to data';
+                                    results.data = 
                                     {
-                                        results.message = signed.message;
-                                        callback(results);
+                                        hex: sell.data.hex,
+                                        psbt: sell.data.psbt
                                     }
-                                });
-                            }
-                            else
+                                    callback(results);
+                                }
+                                else if(sell.success)
+                                {
+                                    ordit.sdk.psbt.sign({
+                                        seed: options.seed,
+                                        hex: Buffer.from(sell.data.hex, 'hex').toString('hex'),
+                                        network: options.network,
+                                        tweaked: false,
+                                        extracted: false,
+                                        finalized: false,
+                                        sighashType: 131,
+                                        signingIndexes: [0]
+                                    }, function(signed)
+                                    {
+                                        if(signed.success)
+                                        {
+                                            rpc_request.params.order.instant = signed.data.psbt.hex;
+                                            
+                                            // Need to sign order ...
+                                            var order_to_sign = JSON.stringify(rpc_request.params.order);
+                                            
+                                            ordit.sdk.message.sign({
+                                                seed: options.seed, 
+                                                message: order_to_sign,
+                                                network: options.network
+                                            }, async function(sigs)
+                                            {
+                                                if(sigs.success)
+                                                {
+                                                    rpc_request.params.signature.value = sigs.data.hex;
+                                                    
+                                                    ordit.sdk.api({
+                                                        uri: 'sado/rpc',
+                                                        data: rpc_request,
+                                                        network: options.network
+                                                    }, function(sado)
+                                                    {
+                                                        if
+                                                        (
+                                                            typeof sado.result != 'undefined'
+                                                            && typeof sado.result.psbt != 'undefined'
+                                                        )
+                                                        {
+                                                            ordit.sdk.psbt.sign({
+                                                                seed: options.seed,
+                                                                base64: sado.result.psbt,
+                                                                network: options.network,
+                                                                tweaked: true
+                                                            },  function(signed_psbt)
+                                                            {
+                                                                if(signed_psbt.success)
+                                                                {
+                                                                    ordit.sdk.txid.get({
+                                                                        hex: signed_psbt.data.hex,
+                                                                        network: options.network
+                                                                    }, 
+                                                                    function(relayed)
+                                                                    {
+                                                                        if(relayed.success)
+                                                                        {
+                                                                            results.success = true;
+                                                                            results.message = 'TXID attached to data';
+                                                                            results.data = 
+                                                                            {
+                                                                                txid: relayed.data.txid
+                                                                            };
+                                                                            callback(results);
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            results.message = 'Unable to relay commit';
+                                                                            callback(results);
+                                                                        }
+                                                                    });
+                                                                }
+                                                                else
+                                                                {
+                                                                    results.message = signed_psbt.message;
+                                                                    callback(results);
+                                                                }
+                                                            });
+                                                        }
+                                                        else
+                                                        {
+                                                            results.message = 'Unable to construct PSBT';
+                                                            callback(results);
+                                                        }
+                                                    });
+                                                }
+                                                else
+                                                {
+                                                    results.message = sigs.message;
+                                                    callback(results);
+                                                }
+                                            });
+                                        }
+                                        else
+                                        {
+                                            results.message = signed.message;
+                                            callback(results);
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    results.message = sell.message;
+                                    callback(results);
+                                }
+                            });
+                        }
+                        else
+                        {
+                            var chain_code = new Buffer(32);
+                            chain_code.fill(1);
+
+                            var childNodeXOnlyPubkey = false;
+
+                            try
                             {
-                                results.message = 'Unable to construct signature';
-                                callback(results);
+
+                                var net_obj = ordit.sdk.network(options.network);
+                                var keys = bip32ecc.fromPublicKey
+                                (
+                                    Buffer.from(w.data.keys[0].pub, 'hex'),
+                                    chain_code,
+                                    net_obj
+                                );
+                                childNodeXOnlyPubkey = keys.publicKey.slice(1, 33).toString('hex');
+                                rpc_request.params.signature.pubkey = childNodeXOnlyPubkey;
                             }
-                        });
+                            catch(e){}
+                            
+                            var sig_request = 
+                            {
+                                jsonrpc: "2.0",
+                                method: "CreateSignablePsbt",
+                                params: 
+                                {
+                                    network: options.network,
+                                    location: options.location,
+                                    maker: w.data.addresses[0].address,
+                                    pubkey: childNodeXOnlyPubkey
+                                },
+                                id: 0
+                            };
+
+                            ordit.sdk.api({
+                                uri: 'sado/rpc',
+                                url: 'https://api.sado.space/rpc',
+                                data: sig_request,
+                                network: options.network
+                            }, function(sigs)
+                            {
+                                if(sigs.result && options.key)
+                                {
+                                    var psbt_to_sign = sigs.result;
+                                    
+                                    results.success = true;
+                                    results.message = 'Unsigned unspendable PSBT attached to data';
+                                    results.data = 
+                                    {
+                                        base64: psbt_to_sign,
+                                        hex: Buffer.from(psbt_to_sign, 'base64').toString('hex')
+                                    }
+                                    callback(results);
+                                }
+                                else if(sigs.result)
+                                {
+                                    var psbt_to_sign = sigs.result;
+
+                                    ordit.sdk.psbt.sign({
+                                        seed: options.seed,
+                                        hex: Buffer.from(psbt_to_sign, 'base64').toString('hex'),
+                                        network: options.network,
+                                        tweaked: true,
+                                        extracted: false
+                                    }, function(signed)
+                                    {
+                                        if(signed.success)
+                                        {
+                                            if(typeof signed.data.hex != 'undefined' && signed.data.hex)
+                                            {
+                                                rpc_request.params.signature.value = signed.data.hex;
+                                            }
+                                            else if(typeof signed.data.psbt == 'object' && typeof signed.data.psbt.base64 != 'undefined')
+                                            {
+                                                rpc_request.params.signature.value = signed.data.psbt.base64;
+                                            }
+
+                                            ordit.sdk.api({
+                                                uri: 'sado/rpc',
+                                                data: rpc_request,
+                                                network: options.network
+                                            }, function(sado)
+                                            {
+                                                if
+                                                (
+                                                    typeof sado.result != 'undefined'
+                                                    && typeof sado.result.psbt != 'undefined'
+                                                )
+                                                {
+                                                    ordit.sdk.psbt.sign({
+                                                        seed: options.seed,
+                                                        base64: sado.result.psbt,
+                                                        network: options.network,
+                                                        tweaked: true
+                                                    },  function(signed_psbt)
+                                                    {
+                                                        if(signed_psbt.success)
+                                                        {
+                                                            ordit.sdk.txid.get({
+                                                                hex: signed_psbt.data.hex,
+                                                                network: options.network
+                                                            }, 
+                                                            function(relayed)
+                                                            {
+                                                                if(relayed.success)
+                                                                {
+                                                                    results.success = true;
+                                                                    results.message = 'TXID attached to data';
+                                                                    results.data = 
+                                                                    {
+                                                                        txid: relayed.data.txid
+                                                                    };
+                                                                    callback(results);
+                                                                }
+                                                                else
+                                                                {
+                                                                    results.message = 'Unable to relay commit';
+                                                                    callback(results);
+                                                                }
+                                                            });
+                                                        }
+                                                        else
+                                                        {
+                                                            results.message = signed_psbt.message;
+                                                            callback(results);
+                                                        }
+                                                    });
+                                                }
+                                                else
+                                                {
+                                                    results.message = 'Unable to construct PSBT';
+                                                    callback(results);
+                                                }
+                                            });
+                                        }
+                                        else
+                                        {
+                                            results.message = signed.message;
+                                            callback(results);
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    results.message = 'Unable to construct signature';
+                                    callback(results);
+                                }
+                            });
+                        }
                     }
                     else
                     {
@@ -4621,6 +5892,119 @@ exports.sdk =
             {
                 callback(results);
             }
+        }
+    },
+    utils:
+    {
+        faucet: function(params = {}, callback = false)
+        {
+            var options = 
+            {
+                destination: false,
+                network: 'testnet'
+            };
+            var results = 
+            {
+                success: false,
+                message: 'Invalid options for utils.faucet',
+                data: false
+            };
+            Object.assign(options, params);
+            if
+            (
+                options.destination && options.network
+            )
+            {
+                ordit.sdk.rpc({
+                    method: 'GenerateToAddress',
+                    data: { 
+                        address: options.destination
+                    },
+                    network: options.network
+                }, function(faucet)
+                {
+                    console.log('faucet', faucet);
+                    if
+                    (
+                        typeof faucet.success != 'undefined'
+                        && typeof faucet.rdata == 'object'
+                        && faucet.success
+                        && faucet.rdata.length > 0
+                        
+                    )
+                    {
+                        results.success = true;
+                        results.message = 'Transaction ID attached to data';
+                        results.data = 
+                        {
+                            txid: faucet.rdata[0]
+                        }
+                    }
+                    else
+                    {
+                        if(typeof faucet.message != 'undefined')
+                        {
+                            results.message = faucet.message;
+                        }
+                        else
+                        {
+                            results.message = 'Invalid response for GenerateToAddress';
+                        }
+                    }
+                    callback(results);
+                });
+            }
+            else if(typeof callback == 'function')
+            {
+                callback(results);
+            }
+        },
+        getAddressesFromPublicKey: function(key, format, network)
+        {
+            var address = false;
+            try
+            {
+                var net_obj = ordit.sdk.network(network);
+                var chain_code = new Buffer(32);
+                chain_code.fill(1);
+
+                var keys = bip32ecc.fromPublicKey
+                (
+                    Buffer.from(key, 'hex'),
+                    chain_code,
+                    net_obj
+                );
+                var childNodeXOnlyPubkey = keys.publicKey.slice(1, 33);
+
+                if(format == 'p2pkh')
+                {
+                    var p2pkh = bitcointp.payments.p2pkh({ pubkey: keys.publicKey, network: net_obj });
+                    address = p2pkh.address;
+                }
+                if(format == 'p2sh')
+                {
+                    var p2sh = bitcointp.payments.p2sh({
+                        redeem: bitcointp.payments.p2wpkh({ pubkey: keys.publicKey, network: net_obj }),
+                        network: net_obj
+                    });
+                    address = p2sh.address;
+                }
+                if(format == 'p2wpkh')
+                {
+                    var p2wpkh = bitcointp.payments.p2wpkh({ pubkey: keys.publicKey, network: net_obj });
+                    address = p2wpkh.address;
+                }
+                if(childNodeXOnlyPubkey && format == 'p2tr')
+                {
+                    var p2tr = bitcointp.payments.p2tr({
+                        internalPubkey: childNodeXOnlyPubkey,
+                        network: net_obj
+                    });
+                    address = p2tr.address;
+                }
+            }
+            catch(e){}
+            return address;
         }
     }
 };

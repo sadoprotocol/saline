@@ -1,0 +1,975 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 55;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		C7213C082A7F87240052B8A9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7213C072A7F87240052B8A9 /* AppDelegate.swift */; };
+		C7213C0A2A7F87240052B8A9 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7213C092A7F87240052B8A9 /* SceneDelegate.swift */; };
+		C7213C0D2A7F87240052B8A9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C7213C0B2A7F87240052B8A9 /* LaunchScreen.storyboard */; };
+		C7213C102A7F87240052B8A9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C7213C0E2A7F87240052B8A9 /* Main.storyboard */; };
+		C7213C192A7F87240052B8A9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7213C182A7F87240052B8A9 /* AppDelegate.swift */; };
+		C7213C1C2A7F87240052B8A9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C7213C1A2A7F87240052B8A9 /* Main.storyboard */; };
+		C7213C242A7F87240052B8A9 /* Saline-v3 Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C7213C232A7F87240052B8A9 /* Saline-v3 Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C7213C2E2A7F87240052B8A9 /* Saline-v3 Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C7213C2D2A7F87240052B8A9 /* Saline-v3 Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C7213C342A7F87240052B8A9 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = C7213BF72A7F87220052B8A9 /* Main.html */; };
+		C7213C352A7F87240052B8A9 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = C7213BF72A7F87220052B8A9 /* Main.html */; };
+		C7213C362A7F87240052B8A9 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = C7213BF92A7F87220052B8A9 /* Icon.png */; };
+		C7213C372A7F87240052B8A9 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = C7213BF92A7F87220052B8A9 /* Icon.png */; };
+		C7213C382A7F87240052B8A9 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = C7213BFA2A7F87220052B8A9 /* Style.css */; };
+		C7213C392A7F87240052B8A9 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = C7213BFA2A7F87220052B8A9 /* Style.css */; };
+		C7213C3A2A7F87240052B8A9 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = C7213BFB2A7F87220052B8A9 /* Script.js */; };
+		C7213C3B2A7F87240052B8A9 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = C7213BFB2A7F87220052B8A9 /* Script.js */; };
+		C7213C3C2A7F87240052B8A9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7213BFC2A7F87220052B8A9 /* ViewController.swift */; };
+		C7213C3D2A7F87240052B8A9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7213BFC2A7F87220052B8A9 /* ViewController.swift */; };
+		C7213C3E2A7F87240052B8A9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C7213BFD2A7F87240052B8A9 /* Assets.xcassets */; };
+		C7213C3F2A7F87240052B8A9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C7213BFD2A7F87240052B8A9 /* Assets.xcassets */; };
+		C7213C5C2A7F87250052B8A9 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = C7213C532A7F87250052B8A9 /* LICENSE */; };
+		C7213C5D2A7F87250052B8A9 /* fontawesome in Resources */ = {isa = PBXBuildFile; fileRef = C7213C542A7F87250052B8A9 /* fontawesome */; };
+		C7213C5E2A7F87250052B8A9 /* css in Resources */ = {isa = PBXBuildFile; fileRef = C7213C552A7F87250052B8A9 /* css */; };
+		C7213C5F2A7F87250052B8A9 /* js in Resources */ = {isa = PBXBuildFile; fileRef = C7213C562A7F87250052B8A9 /* js */; };
+		C7213C602A7F87250052B8A9 /* content in Resources */ = {isa = PBXBuildFile; fileRef = C7213C572A7F87250052B8A9 /* content */; };
+		C7213C612A7F87250052B8A9 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = C7213C582A7F87250052B8A9 /* README.md */; };
+		C7213C622A7F87250052B8A9 /* img in Resources */ = {isa = PBXBuildFile; fileRef = C7213C592A7F87250052B8A9 /* img */; };
+		C7213C632A7F87250052B8A9 /* Saline in Resources */ = {isa = PBXBuildFile; fileRef = C7213C5A2A7F87250052B8A9 /* Saline */; };
+		C7213C642A7F87250052B8A9 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = C7213C5B2A7F87250052B8A9 /* manifest.json */; };
+		C7213C652A7F87250052B8A9 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = C7213C532A7F87250052B8A9 /* LICENSE */; };
+		C7213C662A7F87250052B8A9 /* fontawesome in Resources */ = {isa = PBXBuildFile; fileRef = C7213C542A7F87250052B8A9 /* fontawesome */; };
+		C7213C672A7F87250052B8A9 /* css in Resources */ = {isa = PBXBuildFile; fileRef = C7213C552A7F87250052B8A9 /* css */; };
+		C7213C682A7F87250052B8A9 /* js in Resources */ = {isa = PBXBuildFile; fileRef = C7213C562A7F87250052B8A9 /* js */; };
+		C7213C692A7F87250052B8A9 /* content in Resources */ = {isa = PBXBuildFile; fileRef = C7213C572A7F87250052B8A9 /* content */; };
+		C7213C6A2A7F87250052B8A9 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = C7213C582A7F87250052B8A9 /* README.md */; };
+		C7213C6B2A7F87250052B8A9 /* img in Resources */ = {isa = PBXBuildFile; fileRef = C7213C592A7F87250052B8A9 /* img */; };
+		C7213C6C2A7F87250052B8A9 /* Saline in Resources */ = {isa = PBXBuildFile; fileRef = C7213C5A2A7F87250052B8A9 /* Saline */; };
+		C7213C6D2A7F87250052B8A9 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = C7213C5B2A7F87250052B8A9 /* manifest.json */; };
+		C735D21F2A7F8D8D0085BFFC /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7213BFF2A7F87240052B8A9 /* SafariWebExtensionHandler.swift */; };
+		C735D22B2A806BBF0085BFFC /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7213BFF2A7F87240052B8A9 /* SafariWebExtensionHandler.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C7213C252A7F87240052B8A9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C7213BF12A7F87220052B8A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C7213C222A7F87240052B8A9;
+			remoteInfo = "Saline Extension (iOS)";
+		};
+		C7213C2F2A7F87240052B8A9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C7213BF12A7F87220052B8A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C7213C2C2A7F87240052B8A9;
+			remoteInfo = "Saline Extension (macOS)";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C7213C472A7F87240052B8A9 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C7213C242A7F87240052B8A9 /* Saline-v3 Extension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7213C4E2A7F87240052B8A9 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 12;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C7213C2E2A7F87240052B8A9 /* Saline-v3 Extension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		C7213BF82A7F87220052B8A9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = ../Base.lproj/Main.html; sourceTree = "<group>"; };
+		C7213BF92A7F87220052B8A9 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		C7213BFA2A7F87220052B8A9 /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		C7213BFB2A7F87220052B8A9 /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		C7213BFC2A7F87220052B8A9 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		C7213BFD2A7F87240052B8A9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C7213BFF2A7F87240052B8A9 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		C7213C042A7F87240052B8A9 /* Saline-v3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Saline-v3.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C7213C072A7F87240052B8A9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		C7213C092A7F87240052B8A9 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		C7213C0C2A7F87240052B8A9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		C7213C0F2A7F87240052B8A9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		C7213C112A7F87240052B8A9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C7213C162A7F87240052B8A9 /* Saline-v3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Saline-v3.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C7213C182A7F87240052B8A9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		C7213C1B2A7F87240052B8A9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		C7213C1D2A7F87240052B8A9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C7213C1E2A7F87240052B8A9 /* Saline.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Saline.entitlements; sourceTree = "<group>"; };
+		C7213C232A7F87240052B8A9 /* Saline-v3 Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Saline-v3 Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C7213C282A7F87240052B8A9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C7213C2D2A7F87240052B8A9 /* Saline-v3 Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Saline-v3 Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C7213C322A7F87240052B8A9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C7213C332A7F87240052B8A9 /* Saline.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Saline.entitlements; sourceTree = "<group>"; };
+		C7213C532A7F87250052B8A9 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; name = LICENSE; path = ../../LICENSE; sourceTree = "<group>"; };
+		C7213C542A7F87250052B8A9 /* fontawesome */ = {isa = PBXFileReference; lastKnownFileType = folder; name = fontawesome; path = ../../fontawesome; sourceTree = "<group>"; };
+		C7213C552A7F87250052B8A9 /* css */ = {isa = PBXFileReference; lastKnownFileType = folder; name = css; path = ../../css; sourceTree = "<group>"; };
+		C7213C562A7F87250052B8A9 /* js */ = {isa = PBXFileReference; lastKnownFileType = folder; name = js; path = ../../js; sourceTree = "<group>"; };
+		C7213C572A7F87250052B8A9 /* content */ = {isa = PBXFileReference; lastKnownFileType = folder; name = content; path = ../../content; sourceTree = "<group>"; };
+		C7213C582A7F87250052B8A9 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../../README.md; sourceTree = "<group>"; };
+		C7213C592A7F87250052B8A9 /* img */ = {isa = PBXFileReference; lastKnownFileType = folder; name = img; path = ../../img; sourceTree = "<group>"; };
+		C7213C5A2A7F87250052B8A9 /* Saline */ = {isa = PBXFileReference; lastKnownFileType = text; path = Saline; sourceTree = SOURCE_ROOT; };
+		C7213C5B2A7F87250052B8A9 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../manifest.json; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C7213C012A7F87240052B8A9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7213C132A7F87240052B8A9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7213C202A7F87240052B8A9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7213C2A2A7F87240052B8A9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C7213BF02A7F87220052B8A9 = {
+			isa = PBXGroup;
+			children = (
+				C7213BF52A7F87220052B8A9 /* Shared (App) */,
+				C7213BFE2A7F87240052B8A9 /* Shared (Extension) */,
+				C7213C062A7F87240052B8A9 /* iOS (App) */,
+				C7213C172A7F87240052B8A9 /* macOS (App) */,
+				C7213C272A7F87240052B8A9 /* iOS (Extension) */,
+				C7213C312A7F87240052B8A9 /* macOS (Extension) */,
+				C7213C052A7F87240052B8A9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C7213BF52A7F87220052B8A9 /* Shared (App) */ = {
+			isa = PBXGroup;
+			children = (
+				C7213BFC2A7F87220052B8A9 /* ViewController.swift */,
+				C7213BFD2A7F87240052B8A9 /* Assets.xcassets */,
+				C7213BF62A7F87220052B8A9 /* Resources */,
+			);
+			path = "Shared (App)";
+			sourceTree = "<group>";
+		};
+		C7213BF62A7F87220052B8A9 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				C7213BF72A7F87220052B8A9 /* Main.html */,
+				C7213BF92A7F87220052B8A9 /* Icon.png */,
+				C7213BFA2A7F87220052B8A9 /* Style.css */,
+				C7213BFB2A7F87220052B8A9 /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		C7213BFE2A7F87240052B8A9 /* Shared (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				C7213C522A7F87250052B8A9 /* Resources */,
+				C7213BFF2A7F87240052B8A9 /* SafariWebExtensionHandler.swift */,
+			);
+			path = "Shared (Extension)";
+			sourceTree = "<group>";
+		};
+		C7213C052A7F87240052B8A9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C7213C042A7F87240052B8A9 /* Saline-v3.app */,
+				C7213C162A7F87240052B8A9 /* Saline-v3.app */,
+				C7213C232A7F87240052B8A9 /* Saline-v3 Extension.appex */,
+				C7213C2D2A7F87240052B8A9 /* Saline-v3 Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C7213C062A7F87240052B8A9 /* iOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				C7213C072A7F87240052B8A9 /* AppDelegate.swift */,
+				C7213C092A7F87240052B8A9 /* SceneDelegate.swift */,
+				C7213C0B2A7F87240052B8A9 /* LaunchScreen.storyboard */,
+				C7213C0E2A7F87240052B8A9 /* Main.storyboard */,
+				C7213C112A7F87240052B8A9 /* Info.plist */,
+			);
+			path = "iOS (App)";
+			sourceTree = "<group>";
+		};
+		C7213C172A7F87240052B8A9 /* macOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				C7213C182A7F87240052B8A9 /* AppDelegate.swift */,
+				C7213C1A2A7F87240052B8A9 /* Main.storyboard */,
+				C7213C1D2A7F87240052B8A9 /* Info.plist */,
+				C7213C1E2A7F87240052B8A9 /* Saline.entitlements */,
+			);
+			path = "macOS (App)";
+			sourceTree = "<group>";
+		};
+		C7213C272A7F87240052B8A9 /* iOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				C7213C282A7F87240052B8A9 /* Info.plist */,
+			);
+			path = "iOS (Extension)";
+			sourceTree = "<group>";
+		};
+		C7213C312A7F87240052B8A9 /* macOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				C7213C322A7F87240052B8A9 /* Info.plist */,
+				C7213C332A7F87240052B8A9 /* Saline.entitlements */,
+			);
+			path = "macOS (Extension)";
+			sourceTree = "<group>";
+		};
+		C7213C522A7F87250052B8A9 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				C7213C532A7F87250052B8A9 /* LICENSE */,
+				C7213C542A7F87250052B8A9 /* fontawesome */,
+				C7213C552A7F87250052B8A9 /* css */,
+				C7213C562A7F87250052B8A9 /* js */,
+				C7213C572A7F87250052B8A9 /* content */,
+				C7213C582A7F87250052B8A9 /* README.md */,
+				C7213C592A7F87250052B8A9 /* img */,
+				C7213C5A2A7F87250052B8A9 /* Saline */,
+				C7213C5B2A7F87250052B8A9 /* manifest.json */,
+			);
+			name = Resources;
+			path = "Shared (Extension)";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C7213C032A7F87240052B8A9 /* Saline-v3 (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7213C482A7F87240052B8A9 /* Build configuration list for PBXNativeTarget "Saline-v3 (iOS)" */;
+			buildPhases = (
+				C7213C002A7F87240052B8A9 /* Sources */,
+				C7213C012A7F87240052B8A9 /* Frameworks */,
+				C7213C022A7F87240052B8A9 /* Resources */,
+				C7213C472A7F87240052B8A9 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C7213C262A7F87240052B8A9 /* PBXTargetDependency */,
+			);
+			name = "Saline-v3 (iOS)";
+			productName = "Saline (iOS)";
+			productReference = C7213C042A7F87240052B8A9 /* Saline-v3.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C7213C152A7F87240052B8A9 /* Saline-v3 (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7213C4F2A7F87240052B8A9 /* Build configuration list for PBXNativeTarget "Saline-v3 (macOS)" */;
+			buildPhases = (
+				C7213C122A7F87240052B8A9 /* Sources */,
+				C7213C132A7F87240052B8A9 /* Frameworks */,
+				C7213C142A7F87240052B8A9 /* Resources */,
+				C7213C4E2A7F87240052B8A9 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C7213C302A7F87240052B8A9 /* PBXTargetDependency */,
+			);
+			name = "Saline-v3 (macOS)";
+			productName = "Saline (macOS)";
+			productReference = C7213C162A7F87240052B8A9 /* Saline-v3.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C7213C222A7F87240052B8A9 /* Saline-v3 Extension (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7213C442A7F87240052B8A9 /* Build configuration list for PBXNativeTarget "Saline-v3 Extension (iOS)" */;
+			buildPhases = (
+				C7213C1F2A7F87240052B8A9 /* Sources */,
+				C7213C202A7F87240052B8A9 /* Frameworks */,
+				C7213C212A7F87240052B8A9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Saline-v3 Extension (iOS)";
+			productName = "Saline Extension (iOS)";
+			productReference = C7213C232A7F87240052B8A9 /* Saline-v3 Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		C7213C2C2A7F87240052B8A9 /* Saline-v3 Extension (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7213C4B2A7F87240052B8A9 /* Build configuration list for PBXNativeTarget "Saline-v3 Extension (macOS)" */;
+			buildPhases = (
+				C7213C292A7F87240052B8A9 /* Sources */,
+				C7213C2A2A7F87240052B8A9 /* Frameworks */,
+				C7213C2B2A7F87240052B8A9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Saline-v3 Extension (macOS)";
+			productName = "Saline Extension (macOS)";
+			productReference = C7213C2D2A7F87240052B8A9 /* Saline-v3 Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C7213BF12A7F87220052B8A9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1340;
+				LastUpgradeCheck = 1340;
+				TargetAttributes = {
+					C7213C032A7F87240052B8A9 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+					C7213C152A7F87240052B8A9 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+					C7213C222A7F87240052B8A9 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+					C7213C2C2A7F87240052B8A9 = {
+						CreatedOnToolsVersion = 13.4.1;
+					};
+				};
+			};
+			buildConfigurationList = C7213BF42A7F87220052B8A9 /* Build configuration list for PBXProject "Saline-v3" */;
+			compatibilityVersion = "Xcode 13.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C7213BF02A7F87220052B8A9;
+			productRefGroup = C7213C052A7F87240052B8A9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C7213C032A7F87240052B8A9 /* Saline-v3 (iOS) */,
+				C7213C152A7F87240052B8A9 /* Saline-v3 (macOS) */,
+				C7213C222A7F87240052B8A9 /* Saline-v3 Extension (iOS) */,
+				C7213C2C2A7F87240052B8A9 /* Saline-v3 Extension (macOS) */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C7213C022A7F87240052B8A9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7213C362A7F87240052B8A9 /* Icon.png in Resources */,
+				C7213C0D2A7F87240052B8A9 /* LaunchScreen.storyboard in Resources */,
+				C7213C342A7F87240052B8A9 /* Main.html in Resources */,
+				C7213C3A2A7F87240052B8A9 /* Script.js in Resources */,
+				C7213C3E2A7F87240052B8A9 /* Assets.xcassets in Resources */,
+				C7213C102A7F87240052B8A9 /* Main.storyboard in Resources */,
+				C7213C382A7F87240052B8A9 /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7213C142A7F87240052B8A9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7213C372A7F87240052B8A9 /* Icon.png in Resources */,
+				C7213C392A7F87240052B8A9 /* Style.css in Resources */,
+				C7213C1C2A7F87240052B8A9 /* Main.storyboard in Resources */,
+				C7213C3B2A7F87240052B8A9 /* Script.js in Resources */,
+				C7213C3F2A7F87240052B8A9 /* Assets.xcassets in Resources */,
+				C7213C352A7F87240052B8A9 /* Main.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7213C212A7F87240052B8A9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7213C6A2A7F87250052B8A9 /* README.md in Resources */,
+				C7213C672A7F87250052B8A9 /* css in Resources */,
+				C7213C6C2A7F87250052B8A9 /* Saline in Resources */,
+				C7213C6B2A7F87250052B8A9 /* img in Resources */,
+				C7213C6D2A7F87250052B8A9 /* manifest.json in Resources */,
+				C7213C652A7F87250052B8A9 /* LICENSE in Resources */,
+				C7213C662A7F87250052B8A9 /* fontawesome in Resources */,
+				C7213C682A7F87250052B8A9 /* js in Resources */,
+				C7213C692A7F87250052B8A9 /* content in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7213C2B2A7F87240052B8A9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7213C612A7F87250052B8A9 /* README.md in Resources */,
+				C7213C5E2A7F87250052B8A9 /* css in Resources */,
+				C7213C632A7F87250052B8A9 /* Saline in Resources */,
+				C7213C622A7F87250052B8A9 /* img in Resources */,
+				C7213C642A7F87250052B8A9 /* manifest.json in Resources */,
+				C7213C5C2A7F87250052B8A9 /* LICENSE in Resources */,
+				C7213C5D2A7F87250052B8A9 /* fontawesome in Resources */,
+				C7213C5F2A7F87250052B8A9 /* js in Resources */,
+				C7213C602A7F87250052B8A9 /* content in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C7213C002A7F87240052B8A9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7213C3C2A7F87240052B8A9 /* ViewController.swift in Sources */,
+				C7213C082A7F87240052B8A9 /* AppDelegate.swift in Sources */,
+				C7213C0A2A7F87240052B8A9 /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7213C122A7F87240052B8A9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7213C3D2A7F87240052B8A9 /* ViewController.swift in Sources */,
+				C7213C192A7F87240052B8A9 /* AppDelegate.swift in Sources */,
+				C735D22B2A806BBF0085BFFC /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7213C1F2A7F87240052B8A9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7213C292A7F87240052B8A9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C735D21F2A7F8D8D0085BFFC /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C7213C262A7F87240052B8A9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C7213C222A7F87240052B8A9 /* Saline-v3 Extension (iOS) */;
+			targetProxy = C7213C252A7F87240052B8A9 /* PBXContainerItemProxy */;
+		};
+		C7213C302A7F87240052B8A9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C7213C2C2A7F87240052B8A9 /* Saline-v3 Extension (macOS) */;
+			targetProxy = C7213C2F2A7F87240052B8A9 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		C7213BF72A7F87220052B8A9 /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C7213BF82A7F87220052B8A9 /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		C7213C0B2A7F87240052B8A9 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C7213C0C2A7F87240052B8A9 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		C7213C0E2A7F87240052B8A9 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C7213C0F2A7F87240052B8A9 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		C7213C1A2A7F87240052B8A9 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C7213C1B2A7F87240052B8A9 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		C7213C422A7F87240052B8A9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		C7213C432A7F87240052B8A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		C7213C452A7F87240052B8A9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Saline Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourCompany.Saline.Extension;
+				PRODUCT_NAME = "Saline-v3 Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C7213C462A7F87240052B8A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Saline Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourCompany.Saline.Extension;
+				PRODUCT_NAME = "Saline-v3 Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		C7213C492A7F87240052B8A9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Saline;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourCompany.Saline;
+				PRODUCT_NAME = "Saline-v3";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C7213C4A2A7F87240052B8A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Saline;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourCompany.Saline;
+				PRODUCT_NAME = "Saline-v3";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		C7213C4C2A7F87240052B8A9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/Saline.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = GKL2PZ4L2P;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Saline Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 0.0.3;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourCompany.SalineV3.Extension;
+				PRODUCT_NAME = "Saline-v3 Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C7213C4D2A7F87240052B8A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/Saline.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = GKL2PZ4L2P;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Saline Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 0.0.3;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourCompany.SalineV3.Extension;
+				PRODUCT_NAME = "Saline-v3 Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		C7213C502A7F87240052B8A9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "macOS (App)/Saline.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = GKL2PZ4L2P;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Saline;
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 0.0.3;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourCompany.SalineV3;
+				PRODUCT_NAME = "Saline-v3";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C7213C512A7F87240052B8A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "macOS (App)/Saline.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = GKL2PZ4L2P;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Saline;
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 0.0.3;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourCompany.SalineV3;
+				PRODUCT_NAME = "Saline-v3";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C7213BF42A7F87220052B8A9 /* Build configuration list for PBXProject "Saline-v3" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7213C422A7F87240052B8A9 /* Debug */,
+				C7213C432A7F87240052B8A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C7213C442A7F87240052B8A9 /* Build configuration list for PBXNativeTarget "Saline-v3 Extension (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7213C452A7F87240052B8A9 /* Debug */,
+				C7213C462A7F87240052B8A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C7213C482A7F87240052B8A9 /* Build configuration list for PBXNativeTarget "Saline-v3 (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7213C492A7F87240052B8A9 /* Debug */,
+				C7213C4A2A7F87240052B8A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C7213C4B2A7F87240052B8A9 /* Build configuration list for PBXNativeTarget "Saline-v3 Extension (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7213C4C2A7F87240052B8A9 /* Debug */,
+				C7213C4D2A7F87240052B8A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C7213C4F2A7F87240052B8A9 /* Build configuration list for PBXNativeTarget "Saline-v3 (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7213C502A7F87240052B8A9 /* Debug */,
+				C7213C512A7F87240052B8A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C7213BF12A7F87220052B8A9 /* Project object */;
+}
