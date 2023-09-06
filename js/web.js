@@ -107,6 +107,7 @@ if(typeof chrome == 'object' || typeof browser == 'object')
                                     url_request+= '&e=' + data.options.extracted;
                                     url_request+= '&f=' + data.options.finalized;
                                     url_request+= '&s=' + data.options.sighashType;
+                                    url_request+= '&ns=' + data.options.noSignIndexes;
                                     url_request+= '&id=' + saline_id;
 
                                     if(typeof data.options.msg != 'undefined' && data.options.msg)

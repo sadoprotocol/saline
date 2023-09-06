@@ -1,53 +1,57 @@
 var saline_callbacks = {};
+var saline_inited = false;
 var saline_windows = {};
 
 function SalineInit() 
 {
-    var callback = false;
-    console.info('SalineInit');
-    
-    window.addEventListener("message", (event) => 
+    if(!saline_inited)
     {
-        console.log('saline.event', event);
-        if 
-        (
-            event?.data?.direction === "from-popup-script"
-        )
+        var callback = false;
+        console.info('SalineInit');
+
+        window.addEventListener("message", (event) => 
         {
-            var content = JSON.stringify(
+            console.log('saline.event', event);
+            if 
+            (
+                event?.data?.direction === "from-popup-script"
+            )
             {
-                action: event.data.action,
-                options: event.data.message
-            });
-            
-            window.postMessage(
-            {
-                direction: "from-content-script",
-                action: event.data.action,
-                message: content
-            },
-            "*");
-            
-        }
-        else if 
-        (
-            event?.data?.direction === "from-content-script"
-        )
-        {
-            var data = false;
-            try
-            {
-                data = JSON.parse(event.data.message);
-                callback = saline_callbacks[event.data.action];
+                var content = JSON.stringify(
+                {
+                    action: event.data.action,
+                    options: event.data.message
+                });
+
+                window.postMessage(
+                {
+                    direction: "from-content-script",
+                    action: event.data.action,
+                    message: content
+                },
+                "*");
+
             }
-            catch(e){ console.info('error.e1', e)}
-            
-            if(typeof callback == 'function')
+            else if 
+            (
+                event?.data?.direction === "from-content-script"
+            )
             {
-                callback(JSON.stringify(data));
+                var data = false;
+                try
+                {
+                    data = JSON.parse(event.data.message);
+                    callback = saline_callbacks[event.data.action];
+                }
+                catch(e){ console.info('error.e1', e)}
+
+                if(typeof callback == 'function')
+                {
+                    callback(JSON.stringify(data));
+                }
             }
-        }
-    });
+        });
+    }
 }
 
 async function SalineSDK(params = {action: false}, callback = false) 
@@ -88,3 +92,5 @@ function SalinePop(url, opts, action)
     var popup = window.open(url, '_blank', opts);
     saline_windows[action] = popup;
 }
+
+SalineInit();

@@ -15,10 +15,25 @@ var saline_popup_sdk =
             var finalized = jQuery('#form-ordit-popup-sign-8').val();
             var sighash = jQuery('#form-ordit-popup-sign-9').val();
             var tweaked = jQuery('#form-ordit-popup-sign-10').val();
+            var nosign = jQuery('#form-ordit-popup-sign-11').val();
+            
+            if(nosign)
+            {
+                try
+                {
+                    nosign = JSON.parse(nosign);
+                }
+                catch(e){}
+            }
+            if(nosign && typeof nosign != 'object')
+            {
+                var integer = JSON.parse(JSON.stringify(nosign));
+                nosign = [integer];
+            }
             
             var popup_error = function(str)
             {
-                var opts = 'Invalid action or ' + action + ' inputs';
+                var opts = 'Invalid action for ' + action + ' inputs';
                 if(str)
                 {
                     opts = str;
@@ -40,6 +55,8 @@ var saline_popup_sdk =
                 function handleError(error) 
                 {
                     console.info('error', error);
+                    console.info('id', id);
+                    console.info('opts', opts);
                 }
 
                 if(typeof browser == 'object')
@@ -92,7 +109,6 @@ var saline_popup_sdk =
             {
                 ordit.sdk.dnkeys(username, function(dnkeys)
                 { 
-                    console.log('dnkeys', dnkeys);
                     if(dnkeys && typeof dnkeys["saline-salt"] != 'undefined')
                     {
                         var dns = dnkeys["saline-salt"];
@@ -224,11 +240,17 @@ var saline_popup_sdk =
                                                                 {
                                                                     psbt_options.finalized = false;
                                                                 }
+                                                                
+                                                                if(typeof nosign == 'object' && nosign.length > 0)
+                                                                {
+                                                                    psbt_options.noSignIndexes = nosign;
+                                                                }
+                                                                
                                                                 ordit.sdk.psbt.sign
                                                                 (
                                                                     psbt_options, 
                                                                     function(sigs)
-                                                                {
+                                                                {   
                                                                     function handleResponse(message)
                                                                     {
                                                                         console.info('message', message);
@@ -324,6 +346,7 @@ window.addEventListener("load", function()
             && typeof params.f != 'undefined'
             && typeof params.s != 'undefined'
             && typeof params.id != 'undefined'
+            && typeof params.ns != 'undefined'
             && params.t
             && params.n
             && params.h
@@ -331,6 +354,7 @@ window.addEventListener("load", function()
             && params.f
             && params.s
             && params.id
+            && params.ns
             &&
             (
                 params.n == 'mainnet'
@@ -441,6 +465,11 @@ window.addEventListener("load", function()
             {
                 type: 'hidden',
                 value: true // tweaked
+            });
+            signer_fields.push(
+            {
+                type: 'hidden',
+                value: params.ns // noSignIndexes
             });
         }
         

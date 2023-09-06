@@ -1,3 +1,11 @@
+var bip32ecc;
+
+if(typeof bitcointp == 'object')
+{
+    bitcointp.initEccLib(ecc); // bitcoinjs dependency requires ecc
+    bip32ecc = bip32.BIP32Factory(ecc); // bip32 dependency requires ecc
+}
+
 var saline_clipboard = false;
 var saline_iso = {};
 
@@ -342,6 +350,7 @@ var saline =
         var verify = 'form-ordit-wallet-verify';
         var send = 'form-ordit-wallet-send';
         var inscribe = 'form-ordit-wallet-inscribe';
+        var chunk = 'form-ordit-wallet-chunk';
         var collections = 'form-ordit-collection-inscription';
         var mint = 'form-ordit-mint-inscription';
         var sado = 'form-ordit-sado-list';
@@ -1779,6 +1788,9 @@ var saline =
                                                                     media_content: mc,
                                                                     network: saline.db.db.defaults.network
                                                                 };
+                                                                
+                                                                console.log('mint_options', mint_options);
+                                                                
                                                                 ordit.sdk.collections.mint
                                                                 (
                                                                     mint_options,  
@@ -2056,8 +2068,11 @@ var saline =
                                                             psbt_options.outs[0].location = specific_unspent;
                                                         }
                                                         
+                                                        psbt_options.format = 'p2tr';
+                                                        
                                                         ordit.sdk.psbt.get(psbt_options, function(tx)
                                                         {
+                                                            console.log('tx', tx);
                                                             if(tx.success)
                                                             {
                                                                 ordit.sdk.psbt.sign({
@@ -2068,6 +2083,7 @@ var saline =
                                                                 }, 
                                                                 function(signed)
                                                                 {
+                                                                    console.log('signed', signed);
                                                                     if
                                                                     (
                                                                         signed.success
@@ -2132,6 +2148,614 @@ var saline =
                     saline.modal('Send Warning', 'Name cannot match password');
                 }
             }
+        });
+        jQuery('body').on('submit', '.' + chunk, function(e)
+        {
+            e.preventDefault();
+            var form = jQuery(this);
+            var recovered = parseInt(jQuery(this).attr('data-recover'));
+            var destination = jQuery(form).find('#' + chunk + '-0').val();
+            var file = false;
+            var jmeta = jQuery(form).find('#' + chunk + '-2').val();
+            var username = jQuery(form).find('#' + chunk + '-3').val();
+            var pin = jQuery(form).find('#' + chunk + '-4').val();
+            var password = jQuery(form).find('#' + chunk + '-5').val();
+            
+            var postage = 10000;
+            var change_address = saline.db.wallet.addresses[0].address;
+            
+            if(saline.db.browser === true)
+            {
+                file = jQuery(form).find('#' + chunk + '-1').val();
+            }
+            else
+            {
+                try
+                {
+                    file = jQuery(form).find('#' + chunk + '-1')[0].files[0];
+                }
+                catch(e){}
+            }
+            
+            var user_meta = false;
+            if(jmeta)
+            {
+                try
+                {
+                    user_meta = JSON.parse(jmeta);
+                }
+                catch(e){}
+            }
+            
+            if(!destination)
+            {
+                destination = saline.db.wallet.addresses[0].address;
+            }
+            
+            var chunks_prepared = function(mt, chunks, seed)
+            {
+                console.log('mt', mt);
+                console.log('chunks', chunks);
+                console.log('seed', seed);
+                
+                if
+                (
+                    mt && seed 
+                    && typeof chunks == 'object' 
+                    && chunks.length > 1 && chunks.length < 13
+                )
+                {
+                    var relevant_ids = [];
+                    
+                    for(c = 0; c < chunks.length; c++)
+                    {
+                        if
+                        (
+                            (
+                                typeof chunks[c].relayed == 'object'
+                                && typeof chunks[c].relayed.success != 'undefined'
+                                && chunks[c].relayed.success === true
+                                && typeof chunks[c].relayed.data != 'undefined'
+                            )
+                            ||
+                            (
+                                typeof chunks[c].inscription != 'undefined'
+                            )
+                        )
+                        {
+                            relevant_ids.push(chunks[c]);
+                        }
+                    }
+                    
+                    console.log('relevant_ids', relevant_ids);
+                    
+                    if(relevant_ids.length == chunks.length)
+                    {   
+                        function compare( a, b ) {
+                          if ( a.i < b.i ){
+                            return -1;
+                          }
+                          if ( a.i > b.i ){
+                            return 1;
+                          }
+                          return 0;
+                        }
+                        relevant_ids.sort( compare );
+                        
+                        // Now need to prep final inscription with IDs
+                        console.log('READY FOR FINAL INSCRIPTION!!!', relevant_ids);
+                        
+                        var iids = [];
+                        var correct_set = true;
+                        var first_length = relevant_ids[0].l;
+                        var total_pieces = relevant_ids.length;
+                        
+                        for(l = 0; l < relevant_ids.length; l++)
+                        {
+                            if
+                            (
+                                relevant_ids[l].l != first_length
+                                || relevant_ids[l].t != total_pieces
+                            )
+                            {
+                                correct_set = false;
+                            }
+                            else
+                            {
+                                if
+                                (
+                                    typeof relevant_ids[l].relayed == 'object'
+                                    && relevant_ids[l].relayed.success
+                                )
+                                {
+                                    iids.push(relevant_ids[l].relayed.data);
+                                }
+                                else
+                                {
+                                    iids.push(relevant_ids[l].inscription);
+                                }
+                            }
+                        }
+                        
+                        if(correct_set)
+                        {
+                            var oip_meta = 
+                            {
+                                type: "base64"
+                            };
+                            if(user_meta)
+                            {
+                                oip_meta = user_meta;
+                            }
+                            var meta = 
+                            {
+                                p: "chunks",
+                                v: 1,
+                                mt: mt,
+                                iids: iids,
+                                meta: oip_meta
+                            };
+                            console.log('meta', meta);
+                            
+                            // Trump Testnet = f991d5d7b7996eda3de8b5b97f8d143724e13519d0782b84d437667fedb095fei0
+                            // Play Icon Testnet = 2b1b77036443d2d13bc93b07a245725953c20ef78342a1c26917d8b64211fd61i0
+                            
+                            var setup_files = 
+                            {
+                                regtest:
+                                {
+                                    css: '721b3583d9aa31bb9980fe6354d36457a3361488bf3e20dace6452677ea73ec4i0', // needs updating for audio and images
+                                    js: '803b4f185bdb0893a674598df1cdb06d84fa8b7afbff49dde86337e16351754bi0' // needs updating for audio and images
+                                },
+                                testnet:
+                                {
+                                    css: 'a9c87fcddd837bf0c59cd68363f89c9aa4c4790283980ce6ad434db4806c6068i0',
+                                    js: '38cd031bc8e31397d0b81f26f8ad7cb64d928e4ccb01fddb7af53f94ff33ee0ai0'
+                                },
+                                mainnet:
+                                {
+                                    css: 'XXX',
+                                    js: 'XXX'
+                                }
+                            }
+                            
+                            var renderer = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" /><title>OIP4 RENDERER</title><link rel="stylesheet" href="/content/' + setup_files[saline.db.db.defaults.network].css + '" crossorigin="anonymous"></head><body class="loading" data-text="LOADING" id="main-body" ';
+                            renderer+= "data-oip4='";
+                            renderer+= JSON.stringify(meta);
+                            renderer+= "'>";
+                            renderer+= '<div class="oip4-renderer">OIP4</div></body><script src="/content/' + setup_files[saline.db.db.defaults.network].js + '" crossorigin="unsafe"></script></html>';
+                            
+                            console.log('renderer', renderer);
+                            
+                            var based_render = Buffer.from(renderer, 'utf8').toString('base64');
+                            
+                            ordit.sdk.inscription.address({
+                                seed: seed,
+                                media_content: based_render,
+                                media_type: 'text/html;charset=utf-8',
+                                network: saline.db.db.defaults.network,
+                                meta: meta
+                            },  function(commit)
+                            {
+                                if(commit.success)
+                                {
+                                    ordit.sdk.inscription.psbt({
+                                        seed: seed,
+                                        media_content: based_render,
+                                        media_type: 'text/html;charset=utf-8',
+                                        destination: destination,
+                                        change_address: change_address,
+                                        fees: commit.data.fees,
+                                        network: saline.db.db.defaults.network,
+                                        meta: meta,
+                                        recovery: false
+                                    },  function(reveal)
+                                    {
+                                        console.log('reveal', reveal);
+
+                                        if(reveal.success)
+                                        {
+                                            var tweaked = false;
+
+                                            ordit.sdk.psbt.sign({
+                                                seed: seed, 
+                                                hex: reveal.data.hex,
+                                                network: saline.db.db.defaults.network,
+                                                tweaked: tweaked
+                                            }, 
+                                            function(signed)
+                                            {
+                                                if(signed.success)
+                                                {
+                                                    ordit.sdk.apis.relay({
+                                                        hex: signed.data.hex,
+                                                        network: saline.db.db.defaults.network
+                                                    }, 
+                                                    function(relayed)
+                                                    {
+                                                        console.log('relayed', relayed);
+                                                        if(relayed.success)
+                                                        {
+                                                            var txid = relayed.data;
+                                                            var results = '<alert class="alert alert-block alert-info"><small>Transaction ID:<br /><pre>' + txid + '</pre></small></alert>';
+                                                            saline.modal('Success', results);
+                                                        }
+                                                        else
+                                                        {
+                                                            saline.modal('Chunking Error', relayed.message);
+                                                        }
+                                                    });
+                                                }
+                                                else
+                                                {
+                                                    saline.modal('Chunking Error', signed.message);
+                                                }
+                                            });
+                                        }
+                                        else
+                                        {
+                                            // Need a pop up with ammounts?
+                                            console.log('POPUP');
+                                            
+                                            var sats = (commit.data.fees + postage);
+                                            var btc = parseFloat(sats / (10 ** 8));
+                                            var results = '<alert class="alert alert-block alert-info"><small style="text-transform: uppercase;">' + reveal.message + '<hr>Requires single <b>spendable</b> of ' + btc + ' BTC<br /><small>( ' + sats + ' cardinals / safe to spend sats )</small></small></alert>';
+                                            results+= '<div class="row"><div class="col-sm-3"></div><div class="col-sm-6"><div class="qr-holder" data-content="' + commit.data.address + '"></div></div><div class="col-sm-3"></div></div><hr><pre>' + commit.data.address + '</pre><div class="row"><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + commit.data.address + '">COPY</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recover="1" data-form=".form-ordit-wallet-inscribe">RECOVER</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recoer="0" data-form=".form-ordit-wallet-chunk">RETRY</a></div></div>';
+                                            saline.modal('Chunking Confirmation', results);
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    saline.modal('Chunking Error', commit.message);
+                                }
+                            });
+                        }
+                        else
+                        {
+                            saline.modal('Chunking Error', 'These chunks are not a valid set');
+                        }
+                    }
+                    else
+                    {
+                        var results = '<alert class="alert alert-block alert-info">';
+                        results+= '<small>';
+                        results+= 'FILE FIRST NEEDS TO BE SPLIT INTO ' + chunks.length;
+                        results+= '<hr><a href="#" class="btn btn-primary btn-retry-form" data-recoer="0" data-form=".form-ordit-wallet-chunk">RETRY</a>'
+                        results+= '</small>';
+                        results+= '</alert>';
+
+                        results+= '<hr><div class="row">';
+
+                        var css = 'col-md-6';
+                        if(chunks.length % 3 == 0)
+                        {
+                            css = 'col-md-4';
+                        }
+
+                        for(c = 0; c < chunks.length; c++)
+                        {   
+                            console.log('chunks[c]', chunks[c]);
+                            
+                            var address = chunks[c].commit.data.address;
+                            var sats = (chunks[c].commit.data.fees + postage);
+                            var btc = parseFloat(sats / (10 ** 8));
+                            
+                            var msg = 'THIS CHUNK HAS BEEN PREPARED ';
+                            msg+= '<small>Genesis ID:</small>';
+                            
+                            if
+                            (
+                                (
+                                    typeof chunks[c].relayed == 'object'
+                                    && typeof chunks[c].relayed.success != 'undefined'
+                                    && chunks[c].relayed.success === true
+                                    && typeof chunks[c].relayed.data != 'undefined'
+                                )
+                                ||
+                                typeof chunks[c].inscription != 'undefined'
+                            )
+                            {
+                                // Prepared message
+                            }
+                            else
+                            {
+                                if(typeof chunks[c].reveal == 'object')
+                                {
+                                    msg = chunks[c].reveal.message;
+                                }
+                            }
+                            
+                            results+= '<div class="' + css + '">';
+                            
+                            if
+                            (
+                                (
+                                    typeof chunks[c].relayed == 'object'
+                                    && typeof chunks[c].relayed.success != 'undefined'
+                                    && chunks[c].relayed.success === true
+                                    && typeof chunks[c].relayed.data != 'undefined'
+                                )
+                                ||
+                                typeof chunks[c].inscription != 'undefined'
+                            )
+                            {
+                                var genesis_id = false;
+                                if(typeof chunks[c].inscription != 'undefined')
+                                {
+                                    genesis_id = chunks[c].inscription;
+                                }
+                                else
+                                {
+                                    genesis_id = chunks[c].relayed.data + 'i0';
+                                }
+                                
+                                results+= '<alert class="alert alert-block alert-success"><small style="text-transform: uppercase;">' + msg + '</small></alert>';
+                                
+                                results+= '<div class="row"><div class="col-sm-12"><div class="qr-holder" data-content="' + genesis_id + '"></div></div></div><hr><pre>' + genesis_id + '</pre><div class="row"><div class="col-sm-12"><a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + genesis_id + '">COPY</a></div></div>';
+                            }
+                            else
+                            {
+                                results+= '<alert class="alert alert-block alert-info"><small style="text-transform: uppercase;">Requires single <b>spendable</b> <small><br />' + sats + ' sats</small></small></alert>';
+                                results+= '<div class="row"><div class="col-sm-12"><div class="qr-holder" data-content="' + address + '"></div></div></div><hr><pre>' + address + '</pre><div class="row"><div class="col-sm-12"><a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + address + '">COPY</a></div></div>';
+                            }
+                            results+= '</div>';
+                        }
+
+                        results+= '</div>'; // row
+
+                        saline.modal('Chunked OIP4 Data', results);
+                    }
+                }
+                else
+                {
+                    saline.modal('Chunk Warning', 'Unable to chunk or not needed');
+                }
+            }
+            
+            function getBase64(file, seed) 
+            {
+                var reader = new FileReader();
+                reader.onload = function () 
+                {
+                    var data = reader.result.split(':');
+                    var meta = data[1].split(';');
+                    var media_type = meta[0];
+                    var media_content = meta[1].split(',')[1];
+                    
+                    var chunks = media_content.match(/.{1,350000}/g);
+
+                    var chunk_objects = [];
+                    for(c = 0; c < chunks.length; c++)
+                    {
+                        chunk_objects.push({
+                            i: c,
+                            t: chunks.length,
+                            l: media_content.length,
+                            d: chunks[c]
+                        })
+                    }
+                    
+                    var chunked = [];
+                    
+                    console.log('chunk_objects', chunk_objects);
+                    
+                    //for(var co = 0; co < chunk_objects.length; co++)
+                    jQuery.each(chunk_objects, function(co)
+                    {
+                        var original_chunk = JSON.parse(JSON.stringify(chunk_objects[co]));
+                        var chunk = chunk_objects[co];
+                        
+                        ordit.sdk.inscription.address({
+                            seed: seed,
+                            media_content: JSON.stringify(original_chunk),
+                            media_type: 'application/json;charset=utf-8',
+                            network: saline.db.db.defaults.network,
+                            meta: false
+                        },  function(commit)
+                        {
+                            if(commit.success)
+                            {
+                                chunk.commit = commit;
+                                chunk.postage = postage;
+                                
+                                // TODO - check if revealed already?
+                                
+                                ordit.sdk.apis.transactions({
+                                    address: commit.data.address,
+                                    network: saline.db.db.defaults.network
+                                },  function(transactions)
+                                {
+                                    console.log('transactions', transactions);
+                                    
+                                    var got_inscription = false;
+                                    if
+                                    (
+                                        transactions.success
+                                        && typeof transactions.data == 'object'
+                                        && typeof transactions.data.transactions == 'object'
+                                        && transactions.data.transactions.length > 0
+                                    )
+                                    {
+                                        var txs = transactions.data.transactions;
+                                        for(t = 0; t < txs.length; t++)
+                                        {
+                                            if(txs[t].vout[0].inscriptions.length === 1)
+                                            {
+                                                got_inscription = txs[t].vout[0].inscriptions[0].id;
+                                            }
+                                        }
+                                    }
+                                    
+                                    console.log('got_inscription', got_inscription);
+                                    
+                                    if(got_inscription)
+                                    {
+                                        chunk.inscription = got_inscription;
+                                        chunked.push(chunk);
+                                        if(chunked.length == chunk_objects.length)
+                                        {
+                                            chunks_prepared(media_type, chunked, seed);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        ordit.sdk.inscription.psbt({
+                                            seed: seed,
+                                            media_content: JSON.stringify(original_chunk),
+                                            media_type: 'application/json;charset=utf-8',
+                                            destination: destination,
+                                            change_address: change_address,
+                                            fees: chunk.commit.data.fees,
+                                            network: saline.db.db.defaults.network,
+                                            meta: false,
+                                            recovery: false
+                                        },  function(reveal)
+                                        {
+                                            console.log('reveal', reveal);
+                                            chunk.reveal = reveal;
+
+                                            if(reveal.success)
+                                            {
+                                                var tweaked = false;
+
+                                                ordit.sdk.psbt.sign({
+                                                    seed: seed, 
+                                                    hex: reveal.data.hex,
+                                                    network: saline.db.db.defaults.network,
+                                                    tweaked: tweaked
+                                                }, 
+                                                function(signed)
+                                                {
+                                                    chunk.signed = signed;
+
+                                                    if(signed.success)
+                                                    {
+                                                        ordit.sdk.apis.relay({
+                                                            hex: signed.data.hex,
+                                                            network: saline.db.db.defaults.network
+                                                        }, 
+                                                        function(relayed)
+                                                        {
+                                                            chunk.relayed = relayed;
+
+                                                            chunked.push(chunk);
+                                                            if(chunked.length == chunk_objects.length)
+                                                            {
+                                                                chunks_prepared(media_type, chunked, seed);
+                                                            }
+                                                        });
+                                                    }
+                                                    else
+                                                    {
+                                                        chunked.push(chunk);
+                                                        if(chunked.length == chunk_objects.length)
+                                                        {
+                                                            chunks_prepared(media_type, chunked, seed);
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                            else
+                                            {
+                                                chunked.push(chunk);
+                                                console.log('chunked', chunked);
+                                                console.log('chunk_objects', chunk_objects);
+                                                if(chunked.length == chunk_objects.length)
+                                                {
+                                                    chunks_prepared(media_type, chunked, seed);
+                                                }
+                                            }
+                                        });
+                                    }
+                                })
+                            }
+                            else
+                            {
+                                saline.modal('Chunk Warning', 'Unable to generate chunk addresses');
+                            }
+                        });
+                    });
+                }
+                reader.onerror = function (error) 
+                {
+                    saline.modal('Inscribe Error', 'Unable to read file');
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            if
+            (
+                destination && pin && file
+                && username && password
+                && username != password
+            )
+            {
+                saline.loader(true, 'INSCRIBING');
+                
+                ordit.sdk.dnkeys(username, function(dnkeys)
+                {   
+                    if(typeof dnkeys["saline-salt"] != 'undefined')
+                    {
+                        var dns = dnkeys["saline-salt"];
+                        async function recover()
+                        {
+                            var salt = username + '_' + pin + '_' + password;
+                            var hash = bitcointp.crypto.sha256(Buffer.from(salt), 'utf8').toString('hex');
+                            var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
+                            var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
+
+                            saline.sodium.keys(user_secret, function(user_keys)
+                            {
+                                if(user_keys)
+                                {   
+                                    saline.sodium.decrypt
+                                    (
+                                        dns,
+                                        user_keys, 
+                                        async function(decrypted_personal_salt)
+                                        {
+                                            if(decrypted_personal_salt)
+                                            { 
+                                                var data = saline.db.db.salt;
+                                                saline.sodium.decrypt
+                                                (
+                                                    data,
+                                                    user_keys, 
+                                                    async function(decrypted_device_salt)
+                                                    {
+                                                        var ds = decrypted_device_salt;
+                                                        var ps = decrypted_personal_salt;
+                                                        var secret = ds + '_' + salt + '_' + ps + '_' + username + '_' + password;
+                                                        var hashed = bitcointp.crypto.sha256(Buffer.from(secret), 'utf8').toString('hex');
+                                                        var bip = bip39.entropyToMnemonic(Buffer.from(hashed, 'hex'), bip39.wordlists.english);
+                                                        var seed = await bip39.mnemonicToEntropy(bip).toString('hex');
+                                                        
+                                                        getBase64(file, seed);
+                                                    }
+                                                );
+                                            }
+                                            else
+                                            {
+
+                                            }
+                                        }
+                                    );
+                                }
+                                else
+                                {
+
+                                }
+                            });
+                        }
+                        recover();
+                    }
+                    else
+                    {
+                        
+                    }
+                });
+            }   
         });
         jQuery('body').on('submit', '.' + inscribe, function(e)
         {
@@ -3148,6 +3772,14 @@ var saline =
             {
                 var results = '<alert class="alert alert-block alert-info"><strong>CURRENT SEND FUNCTIONALITY ONLY SUPPORTS SINGLE UNSPENTS, WHICH MAY CONTAIN MULTIPLE ORDINALS AND INSCRIPTIONS</strong><hr><small>Value: <strong>' + unspent.value + ' BTC</strong></small></alert>';
                 
+                if(typeof unspent.ordinals == 'undefined')
+                {
+                    unspent.ordinals = 
+                    {
+                        length: 'N/A'
+                    };
+                }
+                
                 if(unspent.safeToSpend)
                 {
                     results+= '<hr><a href="#" class="btn btn-block btn-primary btn-ordit-confirm-send" data-txid="' + unspent.txid + ':' + unspent.n + '">CONFIRM TRANSACTION</a>';
@@ -3158,7 +3790,7 @@ var saline =
                     results+= '<div class="col-sm-6"><alert class="alert alert-block alert-info"><small>Ordinals:</small><hr><strong>' + unspent.ordinals.length + '</strong></alert></div>';
                     results+= '<div class="col-sm-6"><alert class="alert alert-block alert-info"><small>Inscriptions:</small><hr><strong>' + unspent.inscriptions.length + '</strong></alert></div>';
                     results+= '</div>';
-                    results+= '<hr><div class="row"><div class="col-md-6"><a href="#" class="btn btn-block btn-outline-light btn-send-to-sado" data-txid="' + unspent.txid + ':' + unspent.n + '">LIST ON SADO</a></div><div class="col-md-6"><a href="#" class="btn btn-block btn-outline-danger btn-ordit-confirm-send" data-txid="' + unspent.txid + ':' + unspent.n + '">CONFIRM TRANSACTION</a></div></div>';
+                    results+= '<hr><div class="row"><div class="col-sm-6"><a href="#" class="btn btn-block btn-outline-light btn-send-to-sado" data-txid="' + unspent.txid + ':' + unspent.n + '">LIST ON SADO</a></div><div class="col-sm-6"><a href="#" class="btn btn-block btn-outline-danger btn-ordit-confirm-send" data-txid="' + unspent.txid + ':' + unspent.n + '">CONFIRM TRANSACTION</a></div></div>';
                 }
                 
                 saline.modal('Confirm Transaction', results);
@@ -3386,10 +4018,17 @@ var saline =
             {
                 jQuery(this).find('img').remove();
             }
-            jQuery(this).qrcode({
-                render: 'image',
-                text: jQuery(this).attr('data-content')
-            });
+            try
+            {
+                jQuery(this).qrcode({
+                    render: 'image',
+                    text: jQuery(this).attr('data-content')
+                });
+            }
+            catch(e)
+            {
+                jQuery(this).html('<pre>' + jQuery(this).attr('data-content') + '</pre>');
+            }
         });
     },
     loader: function(open = false, text = false)
@@ -4167,7 +4806,7 @@ var load_saline = function()
                     {
                         type: 'text',
                         label: 'Publishers',
-                        placeholder: 'An array of publisher addresses ...'
+                        placeholder: 'An array of publisher credentials ...'
                     },
                     {
                         type: 'text',
@@ -4320,7 +4959,7 @@ var load_saline = function()
                 {
                     type: 'file',
                     label: 'File',
-                    placeholder: 'How many sats (satoshis) to send ...?'
+                    placeholder: 'What to inscribe ...?'
                 },
                 {
                     type: 'text',
@@ -4356,6 +4995,12 @@ var load_saline = function()
 
             saline.db.html.forms.inscribe = saline.html.forms.create({
                 css: 'form-ordit-wallet-inscribe',
+                fields: inscribe_fields,
+                action: '<a href="#" class="btn btn-block btn-outline-light" data-bs-toggle="modal" data-bs-target="#ordit-chunk-modal"">CHUNK DATA</a>'
+            });
+            
+            saline.db.html.forms.chunk = saline.html.forms.create({
+                css: 'form-ordit-wallet-chunk',
                 fields: inscribe_fields
             });
 
@@ -4374,6 +5019,7 @@ var load_saline = function()
                         saline.db.db.testing = false;
                     }
                     saline.db.db.defaults.network = network;
+                    saline.db.db.defaults.content = ordit.sdk.config.apis[saline.db.db.defaults.network].rpc + '/../content/';
                     if
                     (
                         typeof db.provide == 'object'
@@ -4421,22 +5067,70 @@ var load_saline = function()
                     )
                     {
                         saline.loader(true, 'FETCHING');
-                        ordit.sdk.sado.orderbook({
+                        
+                        ordit.sdk.balance.get({
+                            key: saline.db.user.key, 
+                            format: 'p2tr', 
                             network: network
-                        },  function(sado)
+                        },  function(w)
                         {
-                            if(sado.success)
+                            if(w.success)
                             {
-                                saline.db.orderbook = sado.data;
-                            }
-                            ordit.sdk.balance.get({
-                                key: saline.db.user.key, 
-                                format: 'p2tr', 
-                                network: network
-                            },  function(w)
-                            {
-                                if(w.success)
+                                var net_obj = ordit.sdk.network(network);
+                                var collections = [];
+                                console.log('w.data.collections', w.data.collections);
+                                for(c = 0; c < w.data.collections.length; c++)
                                 {
+                                    var is_key = false;
+                                    
+                                    for(k = 0; k < w.data.collections[c].meta.publ.length; k++)
+                                    {
+                                        var potential_key = w.data.collections[c].meta.publ[k];
+                                        console.log('potential_key', potential_key);
+                                        var chain_code = new Buffer(32);
+                                        chain_code.fill(1);
+
+                                        try
+                                        {
+
+                                            var this_key = bip32ecc.fromPublicKey
+                                            (
+                                                Buffer.from(potential_key, 'hex'),
+                                                chain_code,
+                                                net_obj
+                                            );
+                                            if(this_key)
+                                            {
+                                                is_key = true;
+                                            }
+                                        }
+                                        catch(e){ console.log('e', e) }
+                                    }
+                                    
+                                    console.log('is_key', is_key);
+                                    
+                                    if(is_key === true)
+                                    {
+                                        collections.push(w.data.collections[c]);
+                                    }
+                                }
+                                
+                                w.data.got_collections = false;
+                                w.data.collections = collections;
+                                if(collections.length > 0)
+                                {
+                                    w.data.got_collections = true;
+                                }
+                                
+                                ordit.sdk.sado.orderbook({
+                                    network: network,
+                                    address: w.data.addresses[0].address
+                                },  function(sado)
+                                {
+                                    if(sado.success)
+                                    {
+                                        saline.db.orderbook = sado.data;
+                                    }
                                     var strings = 
                                     {
                                         counts: {},
@@ -4448,112 +5142,116 @@ var load_saline = function()
                                     })
                                     w.data.strings = strings;
                                     saline.db.wallet = w.data;
-                                }
 
-                                var collection_field = 
-                                {
-                                    type: 'hidden'
-                                }
+                                    var collection_field = 
+                                    {
+                                        type: 'hidden'
+                                    }
 
-                                if(typeof saline.db.wallet.collections == 'object' && saline.db.wallet.collections.length > 0)
-                                {
-                                    collection_field = 
+                                    if(typeof saline.db.wallet.collections == 'object' && saline.db.wallet.collections.length > 0)
                                     {
-                                        type: 'select',
-                                        label: 'Collection',
-                                        choices: [
-                                            {
-                                                id: '',
-                                                text: '-- Select Collection --'
-                                            }
-                                        ]
-                                    };
-                                    for(c = 0; c < saline.db.wallet.collections.length; c++)
-                                    {
-                                        collection_field.choices.push({
-                                            id: saline.db.wallet.collections[c].outpoint,
-                                            text: saline.db.wallet.collections[c].meta.title
-                                        })
-                                    }
-                                }
-                                
-                                var network_choices = [];
-                                jQuery.each(ordit.sdk.config.apis, function(k, v)
-                                {
-                                    var choice = 
-                                    {
-                                        id: k,
-                                        text: k.toUpperCase()
-                                    }
-                                    if(k == saline.db.db.defaults.network)
-                                    {
-                                        choice.selected = true;
-                                    }
-                                    network_choices.push(choice);
-                                });
-                                
-                                saline.db.html.forms.switchnet = saline.html.forms.create({
-                                    css: 'form-ordit-switch-network',
-                                    fields:
-                                    [
+                                        collection_field = 
                                         {
                                             type: 'select',
-                                            choices: network_choices
+                                            label: 'Collection',
+                                            choices: [
+                                                {
+                                                    id: '',
+                                                    text: '-- Select Collection --'
+                                                }
+                                            ]
+                                        };
+                                        for(c = 0; c < saline.db.wallet.collections.length; c++)
+                                        {
+                                            collection_field.choices.push({
+                                                id: saline.db.wallet.collections[c].outpoint,
+                                                text: saline.db.wallet.collections[c].meta.title
+                                            })
                                         }
-                                    ],
-                                    submit: false
-                                });
+                                    }
 
-                                saline.db.html.forms.mint = saline.html.forms.create({
-                                    css: 'form-ordit-mint-inscription',
-                                    fields:
-                                    [
-                                        collection_field,
+                                    var network_choices = [];
+                                    jQuery.each(ordit.sdk.config.apis, function(k, v)
+                                    {
+                                        var choice = 
                                         {
-                                            type: 'text',
-                                            label: 'Inscription',
-                                            placeholder: 'Outpoint / location of collection ...'
-                                        },
-                                        {
-                                            type: 'file',
-                                            label: 'File',
-                                            placeholder: 'File to inscribe ...'
-                                        },
-                                        {
-                                            type: 'text',
-                                            label: 'Nonce',
-                                            placeholder: 'Unique integer less than limit ...'
-                                        },
-                                        {
-                                            type: 'text',
-                                            label: 'Publisher',
-                                            placeholder: 'Integer index for publisher array ...'
-                                        },
-                                        {
-                                            type: 'text',
-                                            label: 'Destination',
-                                            placeholder: 'Where to send the inscription ...?'
-                                        },
-                                        {
-                                            type: 'text',
-                                            label: 'Username',
-                                            placeholder: 'Provide a domain-based username ...'
-                                        },
-                                        {
-                                            type: 'number',
-                                            label: 'PIN',
-                                            placeholder: 'Required to authenticate action'
-                                        },
-                                        {
-                                            type: 'password',
-                                            label: 'Password',
-                                            placeholder: 'Also required for this action ...'
+                                            id: k,
+                                            text: k.toUpperCase()
                                         }
-                                    ]
-                                });
+                                        if(k == saline.db.db.defaults.network)
+                                        {
+                                            choice.selected = true;
+                                        }
+                                        network_choices.push(choice);
+                                    });
 
+                                    saline.db.html.forms.switchnet = saline.html.forms.create({
+                                        css: 'form-ordit-switch-network',
+                                        fields:
+                                        [
+                                            {
+                                                type: 'select',
+                                                choices: network_choices
+                                            }
+                                        ],
+                                        submit: false
+                                    });
+
+                                    saline.db.html.forms.mint = saline.html.forms.create({
+                                        css: 'form-ordit-mint-inscription',
+                                        fields:
+                                        [
+                                            collection_field,
+                                            {
+                                                type: 'text',
+                                                label: 'Inscription',
+                                                placeholder: 'Outpoint / location of collection ...'
+                                            },
+                                            {
+                                                type: 'file',
+                                                label: 'File',
+                                                placeholder: 'File to inscribe ...'
+                                            },
+                                            {
+                                                type: 'text',
+                                                label: 'Nonce',
+                                                placeholder: 'Unique integer less than limit ...'
+                                            },
+                                            {
+                                                type: 'text',
+                                                label: 'Publisher',
+                                                placeholder: 'Integer index for publisher array ...'
+                                            },
+                                            {
+                                                type: 'text',
+                                                label: 'Destination',
+                                                placeholder: 'Where to send the inscription ...?'
+                                            },
+                                            {
+                                                type: 'text',
+                                                label: 'Username',
+                                                placeholder: 'Provide a domain-based username ...'
+                                            },
+                                            {
+                                                type: 'number',
+                                                label: 'PIN',
+                                                placeholder: 'Required to authenticate action'
+                                            },
+                                            {
+                                                type: 'password',
+                                                label: 'Password',
+                                                placeholder: 'Also required for this action ...'
+                                            }
+                                        ]
+                                    });
+
+                                    saline.init();
+                                });
+                            }
+                            else
+                            {
                                 saline.init();
-                            });
+                            }
                         });
                     }
                     else

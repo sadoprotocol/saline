@@ -27,15 +27,6 @@
       "32": "img/favicon.png",
       "64": "img/favicon.png"
     },
-    "browser_specific_settings": 
-    {
-      "gecko": {
-        "id": "mark@smalley.my"
-      },
-      "safari": {
-        "id": "mark@smalley.my"
-      }
-    },
     "web_accessible_resources": 
     [
         "js/saline-sdk.js", 

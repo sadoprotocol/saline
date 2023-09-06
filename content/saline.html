@@ -7,6 +7,7 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval'  https://regtest-v2.ordit.io" />
         <link rel='dns-prefetch' href='//s.w.org' />
         <title>SALINE</title>
         
@@ -244,11 +245,16 @@
                                         <alert class="alert alert-block alert-info">
                                             
                                             <small>
-                                                <pre style="text-align: center">{{sat}}</pre>
+                                                <a href="{{db.defaults.content}}{{id}}" target="_blank" class="">
+                                                    <small>
+                                                        {{sat}}
+                                                    </small>
+                                                </a>
                                             </small>
+                                            <hr>
                                             
                                             {{#formats.html}}
-                                            <iframe src="{{media_content}}" class="img img-thumbnail img-responsive img-block ordit-steno-img" id="img-{{sat}}" crossorigin="anonymous"></iframe>
+                                            <iframe src="{{media_content}}" class="img img-thumbnail img-responsive img-block ordit-steno-img" id="img-{{sat}}" crossorigin="unsafe"></iframe>
                                             {{/formats.html}}
                                             
                                             {{#formats.image}}
@@ -421,6 +427,38 @@
                                                     <hr>
 
                                                     <div class="row">
+                                                        
+                                                        {{#instant}}
+                                                        <div class="col-md-4">
+                                                            <small>
+                                                                <a href="#" class="btn btn-sm btn-xs btn-block btn-primary">
+                                                                    <small>
+                                                                        BUY
+                                                                    </small>
+                                                                </a>
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <small>
+                                                                <a href="#" class="btn btn-sm btn-xs btn-block btn-primary">
+                                                                    <small>
+                                                                        BID
+                                                                    </small>
+                                                                </a>
+                                                            </small>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <small>
+                                                                <a href="#" class="btn btn-sm btn-xs btn-block btn-outline-light btn-ordit-copy" data-content="{{cid}}">
+                                                                    <small>
+                                                                        COPY
+                                                                    </small>
+                                                                </a>
+                                                            </small>
+                                                        </div>
+                                                        {{/instant}}
+                                                        
+                                                        {{^instant}}
                                                         <div class="col-md-6">
                                                             <small>
                                                                 <a href="#" class="btn btn-sm btn-xs btn-block btn-primary">
@@ -439,6 +477,8 @@
                                                                 </a>
                                                             </small>
                                                         </div>
+                                                        {{/instant}}
+                                                        
                                                     </div>
 
                                                 </div>
@@ -888,6 +928,24 @@
                 </div>
             </div>
             
+            <div class="modal fade" tabindex="-1" id="ordit-chunk-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Chunk Data</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <alert class="alert alert-block alert-info">
+                                <small>CREATES NEW INSCRIPTIONS DIRECTLY FROM YOUR WALLET</small>
+                            </alert>
+                            <hr>
+                            {{{html.forms.chunk}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="modal fade" tabindex="-1" id="ordit-collections-modal">
                 <div class="modal-dialog">
                     <div class="modal-content">
@@ -924,11 +982,18 @@
                                 </div>
                                 <div class="tab-pane fade" id="mint" role="tabpanel" aria-labelledby="mint-tab">
                                     
+                                    {{#wallet.got_collections}}
                                     <alert class="alert alert-block alert-info">
                                         <small>MINT NEW INSCRIPTION (OIP-2)</small>
                                     </alert>
                                     <hr>
                                     {{{html.forms.mint}}}
+                                    {{/wallet.got_collections}}
+                                    {{^wallet.got_collections}}
+                                    <alert class="alert alert-block alert-info">
+                                        <small>CREATE A COLLECTION FIRST</small>
+                                    </alert>
+                                    {{/wallet.got_collections}}
                                     
                                 </div>
                             </div>
