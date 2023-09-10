@@ -4,7 +4,7 @@ A browser extension wallet that supports Firefox and Chrome ...
 
 Instructions for getting started with pre-alpha release:
 
-* Download this repository locally in order to access vis Firefox or Chrome
+* [Download](https://github.com/sadoprotocol/saline/archive/refs/heads/main.zip) this repository locally in order to access vis Firefox or Chrome
 * Follow the extension setup instructions specific to the relevant browser below
 * Open the extension and complete the in-app setup - note that a __domain name is required__
 
