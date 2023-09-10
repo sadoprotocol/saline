@@ -43,7 +43,6 @@ if(typeof chrome == 'object' || typeof browser == 'object')
     
     window.addEventListener("message", async (event) => 
     {
-        console.log('web.event', event);
         if 
         (
             event.source === window &&

@@ -712,23 +712,14 @@ var saline =
         });
         jQuery('body').on('submit', '.' + recover, function(e)
         {
-            console.log('e', e);
             e.preventDefault();
-            console.log('recover', recover);
             var form = jQuery(this);
-            console.log('form', form);
             var shard_1 = jQuery(form).find('#' + recover + '-0').val();
             var shard_2 = jQuery(form).find('#' + recover + '-1').val();
             var username = jQuery(form).find('#' + recover + '-2').val();
             var dns = jQuery(form).find('#' + recover + '-3').val();
             var pin = jQuery(form).find('#' + recover + '-4').val();
             var password = jQuery(form).find('#' + recover + '-5').val();
-            console.log('shard_1', shard_1);
-            console.log('shard_2', shard_2);
-            console.log('username', username);
-            console.log('dns', dns);
-            console.log('pin', pin);
-            console.log('password', password);
             if
             (
                 shard_1 && shard_2 && pin
@@ -737,7 +728,6 @@ var saline =
                 && username != password
             )
             {
-                console.log('in?');
                 async function recover()
                 {
                     var salt = username + '_' + pin + '_' + password;
@@ -745,10 +735,8 @@ var saline =
                     var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
                     var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
 
-                    console.log('user_secret', user_secret);
                     saline.sodium.keys(user_secret, function(user_keys)
                     {
-                        console.log('user_keys', user_keys);
                         if(user_keys)
                         {   
                             saline.sodium.decrypt
@@ -862,7 +850,7 @@ var saline =
             }
             else
             {
-                console.log('out?');
+                console.info('out?');
             }
         });
         jQuery('body').on('submit', '.' + regenerate, function(e)
@@ -1789,8 +1777,6 @@ var saline =
                                                                     network: saline.db.db.defaults.network
                                                                 };
                                                                 
-                                                                console.log('mint_options', mint_options);
-                                                                
                                                                 ordit.sdk.collections.mint
                                                                 (
                                                                     mint_options,  
@@ -2072,7 +2058,6 @@ var saline =
                                                         
                                                         ordit.sdk.psbt.get(psbt_options, function(tx)
                                                         {
-                                                            console.log('tx', tx);
                                                             if(tx.success)
                                                             {
                                                                 ordit.sdk.psbt.sign({
@@ -2083,7 +2068,6 @@ var saline =
                                                                 }, 
                                                                 function(signed)
                                                                 {
-                                                                    console.log('signed', signed);
                                                                     if
                                                                     (
                                                                         signed.success
@@ -2193,11 +2177,7 @@ var saline =
             }
             
             var chunks_prepared = function(mt, chunks, seed)
-            {
-                console.log('mt', mt);
-                console.log('chunks', chunks);
-                console.log('seed', seed);
-                
+            {   
                 if
                 (
                     mt && seed 
@@ -2227,8 +2207,6 @@ var saline =
                         }
                     }
                     
-                    console.log('relevant_ids', relevant_ids);
-                    
                     if(relevant_ids.length == chunks.length)
                     {   
                         function compare( a, b ) {
@@ -2241,9 +2219,6 @@ var saline =
                           return 0;
                         }
                         relevant_ids.sort( compare );
-                        
-                        // Now need to prep final inscription with IDs
-                        console.log('READY FOR FINAL INSCRIPTION!!!', relevant_ids);
                         
                         var iids = [];
                         var correct_set = true;
@@ -2295,7 +2270,6 @@ var saline =
                                 iids: iids,
                                 meta: oip_meta
                             };
-                            console.log('meta', meta);
                             
                             // Trump Testnet = f991d5d7b7996eda3de8b5b97f8d143724e13519d0782b84d437667fedb095fei0
                             // Play Icon Testnet = 2b1b77036443d2d13bc93b07a245725953c20ef78342a1c26917d8b64211fd61i0
@@ -2325,7 +2299,7 @@ var saline =
                             renderer+= "'>";
                             renderer+= '<div class="oip4-renderer">OIP4</div></body><script src="/content/' + setup_files[saline.db.db.defaults.network].js + '" crossorigin="unsafe"></script></html>';
                             
-                            console.log('renderer', renderer);
+                            console.info('renderer', renderer);
                             
                             var based_render = Buffer.from(renderer, 'utf8').toString('base64');
                             
@@ -2351,8 +2325,6 @@ var saline =
                                         recovery: false
                                     },  function(reveal)
                                     {
-                                        console.log('reveal', reveal);
-
                                         if(reveal.success)
                                         {
                                             var tweaked = false;
@@ -2373,7 +2345,6 @@ var saline =
                                                     }, 
                                                     function(relayed)
                                                     {
-                                                        console.log('relayed', relayed);
                                                         if(relayed.success)
                                                         {
                                                             var txid = relayed.data;
@@ -2394,9 +2365,6 @@ var saline =
                                         }
                                         else
                                         {
-                                            // Need a pop up with ammounts?
-                                            console.log('POPUP');
-                                            
                                             var sats = (commit.data.fees + postage);
                                             var btc = parseFloat(sats / (10 ** 8));
                                             var results = '<alert class="alert alert-block alert-info"><small style="text-transform: uppercase;">' + reveal.message + '<hr>Requires single <b>spendable</b> of ' + btc + ' BTC<br /><small>( ' + sats + ' cardinals / safe to spend sats )</small></small></alert>';
@@ -2435,8 +2403,6 @@ var saline =
 
                         for(c = 0; c < chunks.length; c++)
                         {   
-                            console.log('chunks[c]', chunks[c]);
-                            
                             var address = chunks[c].commit.data.address;
                             var sats = (chunks[c].commit.data.fees + postage);
                             var btc = parseFloat(sats / (10 ** 8));
@@ -2538,9 +2504,6 @@ var saline =
                     
                     var chunked = [];
                     
-                    console.log('chunk_objects', chunk_objects);
-                    
-                    //for(var co = 0; co < chunk_objects.length; co++)
                     jQuery.each(chunk_objects, function(co)
                     {
                         var original_chunk = JSON.parse(JSON.stringify(chunk_objects[co]));
@@ -2566,7 +2529,6 @@ var saline =
                                     network: saline.db.db.defaults.network
                                 },  function(transactions)
                                 {
-                                    console.log('transactions', transactions);
                                     
                                     var got_inscription = false;
                                     if
@@ -2586,8 +2548,6 @@ var saline =
                                             }
                                         }
                                     }
-                                    
-                                    console.log('got_inscription', got_inscription);
                                     
                                     if(got_inscription)
                                     {
@@ -2612,7 +2572,6 @@ var saline =
                                             recovery: false
                                         },  function(reveal)
                                         {
-                                            console.log('reveal', reveal);
                                             chunk.reveal = reveal;
 
                                             if(reveal.success)
@@ -2659,8 +2618,6 @@ var saline =
                                             else
                                             {
                                                 chunked.push(chunk);
-                                                console.log('chunked', chunked);
-                                                console.log('chunk_objects', chunk_objects);
                                                 if(chunked.length == chunk_objects.length)
                                                 {
                                                     chunks_prepared(media_type, chunked, seed);
@@ -2857,6 +2814,14 @@ var saline =
                                                                         }
                                                                     }
                                                                     catch(e){}
+                                                                }
+                                                                
+                                                                if
+                                                                (
+                                                                    media_type.indexOf('text') > -1
+                                                                )
+                                                                {
+                                                                    media_content = Buffer.from(media_content, 'base64').toString('utf8');
                                                                 }
 
                                                                 ordit.sdk.inscription.address({
@@ -5078,7 +5043,6 @@ var load_saline = function()
                             {
                                 var net_obj = ordit.sdk.network(network);
                                 var collections = [];
-                                console.log('w.data.collections', w.data.collections);
                                 for(c = 0; c < w.data.collections.length; c++)
                                 {
                                     var is_key = false;
@@ -5086,7 +5050,6 @@ var load_saline = function()
                                     for(k = 0; k < w.data.collections[c].meta.publ.length; k++)
                                     {
                                         var potential_key = w.data.collections[c].meta.publ[k];
-                                        console.log('potential_key', potential_key);
                                         var chain_code = new Buffer(32);
                                         chain_code.fill(1);
 
@@ -5104,10 +5067,8 @@ var load_saline = function()
                                                 is_key = true;
                                             }
                                         }
-                                        catch(e){ console.log('e', e) }
+                                        catch(e){ console.info('e', e) }
                                     }
-                                    
-                                    console.log('is_key', is_key);
                                     
                                     if(is_key === true)
                                     {

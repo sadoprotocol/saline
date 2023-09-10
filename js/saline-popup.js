@@ -245,7 +245,6 @@ var saline_popup_sdk =
                                                                 {
                                                                     psbt_options.noSignIndexes = nosign;
                                                                 }
-                                                                
                                                                 ordit.sdk.psbt.sign
                                                                 (
                                                                     psbt_options, 

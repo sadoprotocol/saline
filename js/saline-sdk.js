@@ -7,11 +7,9 @@ function SalineInit()
     if(!saline_inited)
     {
         var callback = false;
-        console.info('SalineInit');
 
         window.addEventListener("message", (event) => 
         {
-            console.log('saline.event', event);
             if 
             (
                 event?.data?.direction === "from-popup-script"
