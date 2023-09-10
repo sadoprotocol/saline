@@ -8,4 +8,4 @@ Instructions for getting started with pre-alpha release:
 
 If using Firefox, visit the following URL / page: `about:debugging#/runtime/this-firefox`:
 
-[![LOAD TEMPORARY PLUGIN](img/docs/firefox-temp.png)](://about:debugging#/runtime/this-firefox)
+![LOAD TEMPORARY PLUGIN](img/docs/firefox-temp.png)
