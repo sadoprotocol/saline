@@ -435,6 +435,8 @@ exports.sdk =
                                     valid_inscription = true;
                                 }
                             }
+                            
+                            console.log('m', m);
 
                             if(valid_inscription)
                             {   
@@ -5807,9 +5809,11 @@ exports.sdk =
                 {
                     var chunk_content = function(str)
                     {
+                        console.log('str.length', str.length);
                         if(str.length > 519)
                         {
-                            var strings = str.match(/.{1,520}/g);
+                            //var strings = str.match(/.{1,520}/g);
+                            var strings = str.match(/[^]{1,520}/g);
                             return strings;
                         }
                         else
@@ -5861,12 +5865,14 @@ exports.sdk =
                                 ||
                                 (
                                     options.media_type.indexOf('css') > -1
-                                    || options.media_type.indexOf('html') > -1
+                                    //|| options.media_type.indexOf('html') > -1
                                 )
                             )
                             {
                                 encode_type = 'base64';
                             }
+                            console.log('encode_type', encode_type);
+                            console.log('chunks[c]', chunks[c]);
                             the_scripts.push(op_push(chunks[c], encode_type));
                         }
 

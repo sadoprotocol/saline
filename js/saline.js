@@ -3826,6 +3826,8 @@ var saline =
         jQuery('body').on('click', '.btn-ordit-reset-wallet', function(e)
         {
             e.preventDefault();
+            
+            saline.loader(true, 'RESETTING');
 
             saline.data.remove(['user', 'device', 'provide', 'wallet'], function(error)
             {
@@ -5067,7 +5069,7 @@ var load_saline = function()
                                                 is_key = true;
                                             }
                                         }
-                                        catch(e){ console.info('e', e) }
+                                        catch(e){ }
                                     }
                                     
                                     if(is_key === true)
