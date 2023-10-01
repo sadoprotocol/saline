@@ -29,7 +29,7 @@
                         
                         <ul class="nav nav-tabs" id="main-tabs" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">DASHBOARD</button>
+                                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">ACCOUNTS</button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="sats-tab" data-bs-toggle="tab" data-bs-target="#sats" type="button" role="tab" aria-controls="sats" aria-selected="false">SATS</button>
@@ -37,14 +37,19 @@
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="artifacts-tab" data-bs-toggle="tab" data-bs-target="#artifacts" type="button" role="tab" aria-controls="artifacts" aria-selected="false">ARTIFACTS</button>
                             </li>
+                            <!--
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="utxo-tab" data-bs-toggle="tab" data-bs-target="#utxo" type="button" role="tab" aria-controls="utxo" aria-selected="false">UTXO</button>
                             </li>
+                            -->
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="sado-tab" data-bs-toggle="tab" data-bs-target="#sado" type="button" role="tab" aria-controls="sado" aria-selected="false">SADO</button>
+                                <button class="nav-link" id="tokens-tab" data-bs-toggle="tab" data-bs-target="#tokens" type="button" role="tab" aria-controls="tokens" aria-selected="false">TOKENS</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="db-tab" data-bs-toggle="tab" data-bs-target="#db" type="button" role="tab" aria-controls="db" aria-selected="false">DB</button>
+                                <button class="nav-link" id="sado-tab" data-bs-toggle="tab" data-bs-target="#sado" type="button" role="tab" aria-controls="sado" aria-selected="false">MARKET</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="db-tab" data-bs-toggle="tab" data-bs-target="#db" type="button" role="tab" aria-controls="db" aria-selected="false"><i class="fas fa-cog"></i></button>
                             </li>
                         </ul>
                     </div>
@@ -299,6 +304,75 @@
                                     
                                 </div>
                                 
+                            </div>
+                            <div class="tab-pane fade" id="tokens" role="tabpanel" aria-labelledby="tokens-tab">
+                                
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <a href="#" class="btn btn-sm btn-block btn-outline-light" data-bs-toggle="modal" data-bs-target="#ordit-deploy-modal">
+                                            DEPLOY
+                                        </a>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <a href="#" class="btn btn-sm btn-block btn-outline-light" data-bs-toggle="modal" data-bs-target="#ordit-mint-modal">
+                                            MINT
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <hr>
+                                
+                                <div class="row" style="padding-left: 15px; padding-right: 15px">
+                                    
+                                    {{#got_tokens}}
+                                    
+                                    <table class="table table-dark table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>Tick</th>
+                                                <th>Total</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- {{#tokens}} -->
+                                            <tr>
+                                                <td>
+                                                    <small>
+                                                        <pre>{{type}}</pre>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        <pre>{{tick}}</pre>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        <pre>{{display.total}}</pre>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        {{#token.remaining}}
+                                                        <a href="#" class="btn btn-primary btn-sm btn-ordit-mint-more-tokens" data-symbol="{{tick}}" data-limit="{{token.limit}}" data-bs-toggle="modal" data-bs-target="#ordit-mint-modal"preptoken>
+                                                            <small>MINT</small>
+                                                        </a>
+                                                        {{/token.remaining}}
+                                                        <a href="#" class="btn btn-secondary btn-sm btn-ordit-display-token-info" data-decimal="{{token.decimal}}" data-amount="{{display.amount}}" data-max="{{display.max}}" data-balance="{{display.transferable}}" data-reserve="{{display.available}}" data-type="{{type}}" data-tick="{{tick}}" data-remain="{{token.remaining}}" data-remaining="{{display.remaining}}" data-available="{{available}}" data-transferable="{{transferable}}" data-inscription="{{token.inscription}}" data-limit="{{token.limit}}">
+                                                            <small>INFO</small>
+                                                        </a>
+                                                    </small>
+                                                </td>
+                                            </tr>
+                                            <!-- {{/tokens}} -->
+                                        </tbody>
+                                    </table>
+                                    
+                                    {{/got_tokens}}
+                                    
+                                </div>
                             </div>
                             <div class="tab-pane fade" id="utxo" role="tabpanel" aria-labelledby="utxo-tab">
                                 
@@ -783,6 +857,7 @@
         </div>
         
         <div class="modal-wrapper batter-mustache">
+            
             <div class="modal fade" tabindex="-1" id="default-modal">
                 <div class="modal-dialog">
                     <div class="modal-content">
@@ -869,6 +944,61 @@
                                 </div>
                             </div>
                             
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal fade" tabindex="-1" id="ordit-deploy-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Deploy Tokens</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <alert class="alert alert-block alert-info">
+                                <small>DEPLOY NEW TOKEN SUPPLY</small>
+                            </alert>
+                            <hr>
+                            {{{html.forms.deploytoken}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal fade" tabindex="-1" id="ordit-preptoken-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Prepare Tokens</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <alert class="alert alert-block alert-info">
+                                <small>PREPARE FOR TOKEN TRANSFER</small>
+                                <hr>Current Reserves: <b id="ordit-preptoken-reserves"></b>
+                            </alert>
+                            <hr>
+                            {{{html.forms.transfertoken}}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal fade" tabindex="-1" id="ordit-mint-modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Mint Tokens</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <alert class="alert alert-block alert-info">
+                                <small>MINT TOKENS FROM EXISTING SUPPLY</small>
+                            </alert>
+                            <hr>
+                            {{{html.forms.minttoken}}}
                         </div>
                     </div>
                 </div>

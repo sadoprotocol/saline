@@ -357,6 +357,9 @@ var saline =
         var settings = 'form-ordit-sado-settings';
         var signtx = 'form-ordit-wallet-signtx';
         var switchnet = 'form-ordit-switch-network';
+        var deploytoken = 'form-ordit-deploy-token';
+        var minttoken = 'form-ordit-mint-tokens';
+        var transfertoken = 'form-ordit-prepare-transfer';
         
         var get = 'form-ordit-wallet-get';
         var lookup = 'form-ordit-wallet-lookup';
@@ -1671,6 +1674,637 @@ var saline =
                 {
                     saline.modal('Collection Warning', 'Name cannot match password');
                 }
+            }
+        });
+        jQuery('body').on('submit', '.' + deploytoken, function(e)
+        {
+            e.preventDefault();
+            var form = jQuery(this);
+            
+            var ticker = jQuery(form).find('#' + deploytoken + '-0').val();
+            var decimals = jQuery(form).find('#' + deploytoken + '-1').val();
+            var max = parseInt(jQuery(form).find('#' + deploytoken + '-2').val());
+            var limit = parseInt(jQuery(form).find('#' + deploytoken + '-3').val());
+            var fees = jQuery(form).find('#' + deploytoken + '-4').val();
+
+            var username = jQuery(form).find('#' + deploytoken + '-5').val();
+            var pin = jQuery(form).find('#' + deploytoken + '-6').val();
+            var password = jQuery(form).find('#' + deploytoken + '-7').val();
+            
+            var postage = 10000;
+            var actual_decimals = 0;
+            var actual_fees = 0;
+            if(decimals) actual_decimals = parseInt(decimals);
+            if(fees) actual_fees = parseInt(fees);
+            
+            if
+            (
+                pin && ticker && max && limit
+                && limit <= max
+                && username && password
+                && username != password
+            )
+            {
+                saline.loader(true, 'DEPLOYING');
+                
+                var deploy_supply = function(these_options, this_seed)
+                {
+                    ordit.sdk.tokens.deploy(these_options, function(response)
+                    {   
+                        if
+                        (
+                            typeof response.data == 'object'
+                            && typeof response.data.address == 'string'
+                            && typeof response.data.fees == 'number'
+                        )
+                        {
+                            // Need to check if ready for reveal ...?
+                            ordit.sdk.inscription.psbt({
+                                seed: this_seed,
+                                media_content: response.data.media_content,
+                                media_type: response.data.media_type,
+                                destination: saline.db.wallet.addresses[0].address,
+                                change_address: saline.db.wallet.addresses[0].address,
+                                fees: response.data.fees,
+                                network: saline.db.db.defaults.network,
+                                recovery: false
+                            },  function(reveal)
+                            {   
+                                if(reveal.success)
+                                {
+                                    ordit.sdk.psbt.sign({
+                                        seed: this_seed, 
+                                        hex: reveal.data.hex,
+                                        network: saline.db.db.defaults.network,
+                                        tweaked: false
+                                    }, 
+                                    function(signed)
+                                    {
+                                        if
+                                        (
+                                            signed.success
+                                            && typeof signed.data.hex != 'undefined'
+                                            && signed.data.hex
+                                        )
+                                        {
+                                            ordit.sdk.txid.get({
+                                                hex: signed.data.hex,
+                                                network: saline.db.db.defaults.network
+                                            }, 
+                                            function(relayed)
+                                            {
+                                                if(relayed.success)
+                                                {
+                                                    var txid = relayed.data.txid;
+                                                    var results = '<alert class="alert alert-block alert-info"><small>Transaction ID:<br /><pre>' + txid + '</pre></small></alert>';
+                                                    saline.modal('Success', results);
+                                                }
+                                                else
+                                                {
+                                                    saline.modal('Mint Warning', 'Unable to relay TX');
+                                                }
+                                            });
+                                        }
+                                        else
+                                        {
+                                            saline.modal('Mint Warning', 'Unable to sign PSBT');
+                                        }
+                                    });
+                                }
+                                else
+                                {
+
+
+                                    // Show commit details ...
+                                    var msg = 'Depoly Commit';
+
+                                    var form_id = '.form-ordit-deploy-token';
+                                    var sats = (response.data.fees + postage);
+                                    var btc = parseFloat(sats / (10 ** 8));
+                                    var results = '<alert class="alert alert-block alert-info"><small style="text-transform: uppercase;">' + response.message + '<hr>Requires single <b>spendable</b> of ' + btc + ' BTC<br /><small>( ' + sats + ' cardinals / safe to spend sats )</small></small></alert>';
+                                    results+= '<div class="row"><div class="col-sm-3"></div><div class="col-sm-6"><div class="qr-holder" data-content="' + response.data.address + '"></div></div><div class="col-sm-3"></div></div><hr><pre>' + response.data.address + '</pre><div class="row"><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + response.data.address + '">COPY</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recover="1" data-form="' + form_id + '">RECOVER</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recoer="0" data-form="' + form_id + '">RETRY</a></div></div>';
+                                    saline.modal(msg, results);
+                                }
+                            });
+                        }
+                        else
+                        {
+                            if(response.success)
+                            {
+                                var txid = 'N/A';
+                                var title = 'Deployed Token';
+                                
+                                if
+                                (
+                                    typeof response.data == 'object'
+                                    && typeof response.data.deploy == 'string'
+                                )
+                                {
+                                    txid = response.data.deploy
+                                }
+                                
+                                var msg = '<alert class="alert alert-block alert-info"><small>Transaction ID:<br /><pre>' + txid + '</pre></small></alert>';
+                                saline.modal(title, msg);
+                            }
+                            else
+                            {
+                                saline.modal('Deploy Warning', response.message);
+                            }
+                        }
+                    })
+                }
+                ordit.sdk.dnkeys(username, function(dnkeys)
+                {   
+                    if(typeof dnkeys["saline-salt"] != 'undefined')
+                    {
+                        var dns = dnkeys["saline-salt"];
+                        
+                        async function recover()
+                        {
+                            var salt = username + '_' + pin + '_' + password;
+                            var hash = bitcointp.crypto.sha256(Buffer.from(salt), 'utf8').toString('hex');
+                            var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
+                            var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
+
+                            saline.sodium.keys(user_secret, function(user_keys)
+                            {
+                                if(user_keys)
+                                {   
+                                    saline.sodium.decrypt
+                                    (
+                                        dns,
+                                        user_keys, 
+                                        async function(decrypted_personal_salt)
+                                        {   
+                                            if(decrypted_personal_salt)
+                                            { 
+                                                var data = saline.db.db.salt;
+                                                saline.sodium.decrypt
+                                                (
+                                                    data,
+                                                    user_keys, 
+                                                    async function(decrypted_device_salt)
+                                                    {
+                                                        var ds = decrypted_device_salt;
+                                                        var ps = decrypted_personal_salt;
+                                                        var secret = ds + '_' + salt + '_' + ps + '_' + username + '_' + password;
+                                                        var hashed = bitcointp.crypto.sha256(Buffer.from(secret), 'utf8').toString('hex');
+                                                        var bip = bip39.entropyToMnemonic(Buffer.from(hashed, 'hex'), bip39.wordlists.english);
+                                                        var seed = await bip39.mnemonicToEntropy(bip).toString('hex');
+                                                        
+                                                        var deploy_options = 
+                                                        {
+                                                            seed: seed,
+                                                            symbol: ticker,
+                                                            supply: jQuery(form).find('#' + deploytoken + '-2').val(),
+                                                            limit: jQuery(form).find('#' + deploytoken + '-3').val(),
+                                                            decimals: actual_decimals,
+                                                            fees: actual_fees,
+                                                            network: saline.db.db.defaults.network
+                                                        };
+                                                        
+                                                        deploy_supply(deploy_options, seed);
+                                                    }
+                                                );
+                                            }
+                                            else
+                                            {
+                                                saline.modal('Deploy Warning', 'Unable to decrypt DNS data');
+                                            }
+                                        }
+                                    );
+                                }
+                                else
+                                {
+                                    saline.modal('Deploy Warning', 'Unable to locate DNS data');
+                                }
+                            });
+                        }
+                        recover();
+                    }
+                    else
+                    {
+                        saline.modal('Deploy Warning', 'Unable to verify DNS data');
+                    }
+                });
+            }
+            else
+            {
+                saline.modal('Deploy Warning', 'Invalid deploy options');
+            }
+        });
+        jQuery('body').on('submit', '.' + minttoken, function(e)
+        {
+            e.preventDefault();
+            var form = jQuery(this);
+            
+            var ticker = jQuery(form).find('#' + minttoken + '-0').val();
+            var amount = parseInt(jQuery(form).find('#' + minttoken + '-1').val());
+            var fees = jQuery(form).find('#' + minttoken + '-2').val();
+
+            var username = jQuery(form).find('#' + minttoken + '-3').val();
+            var pin = jQuery(form).find('#' + minttoken + '-4').val();
+            var password = jQuery(form).find('#' + minttoken + '-5').val();
+            
+            var postage = 10000;
+            var actual_fees = 0;
+            if(fees) actual_fees = parseInt(fees);
+            
+            if
+            (
+                pin && ticker && amount
+                && username && password
+                && username != password
+            )
+            {
+                saline.loader(true, 'MINTING');
+                
+                var mint_tokens = function(these_options, this_seed, this_address)
+                {
+                    ordit.sdk.tokens.mint(these_options, function(response)
+                    {
+                        if
+                        (
+                            typeof response.data == 'object'
+                            && typeof response.data.address == 'string'
+                            && typeof response.data.fees == 'number'
+                        )
+                        {
+                            // Need to check if ready for reveal ...?
+                            ordit.sdk.inscription.psbt({
+                                seed: this_seed,
+                                media_content: response.data.media_content,
+                                media_type: response.data.media_type,
+                                destination: this_address,
+                                change_address: this_address,
+                                fees: response.data.fees,
+                                network: saline.db.db.defaults.network,
+                                recovery: false
+                            },  function(reveal)
+                            {
+                                if(reveal.success)
+                                {
+                                    ordit.sdk.psbt.sign({
+                                        seed: this_seed, 
+                                        hex: reveal.data.hex,
+                                        network: saline.db.db.defaults.network,
+                                        tweaked: false
+                                    }, 
+                                    function(signed)
+                                    {
+                                        if
+                                        (
+                                            signed.success
+                                            && typeof signed.data.hex != 'undefined'
+                                            && signed.data.hex
+                                        )
+                                        {
+                                            ordit.sdk.txid.get({
+                                                hex: signed.data.hex,
+                                                network: saline.db.db.defaults.network
+                                            }, 
+                                            function(relayed)
+                                            {
+                                                if(relayed.success)
+                                                {
+                                                    var txid = relayed.data.txid;
+                                                    var results = '<alert class="alert alert-block alert-info"><small>Transaction ID:<br /><pre>' + txid + '</pre></small></alert>';
+                                                    saline.modal('Success', results);
+                                                }
+                                                else
+                                                {
+                                                    saline.modal('Mint Warning', 'Unable to relay TX');
+                                                }
+                                            });
+                                        }
+                                        else
+                                        {
+                                            saline.modal('Mint Warning', 'Unable to sign PSBT');
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    // Show commit details ...
+                                    var msg = 'Mint Tokens';
+                                    var form_id = '.form-ordit-mint-tokens';
+                                    var sats = (response.data.fees + postage);
+                                    var btc = parseFloat(sats / (10 ** 8));
+                                    var results = '<alert class="alert alert-block alert-info"><small style="text-transform: uppercase;">' + response.message + '<hr>Requires single <b>spendable</b> of ' + btc + ' BTC<br /><small>( ' + sats + ' cardinals / safe to spend sats )</small></small></alert>';
+                                    results+= '<div class="row"><div class="col-sm-3"></div><div class="col-sm-6"><div class="qr-holder" data-content="' + response.data.address + '"></div></div><div class="col-sm-3"></div></div><hr><pre>' + response.data.address + '</pre><div class="row"><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + response.data.address + '">COPY</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recover="1" data-form="' + form_id + '">RECOVER</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recoer="0" data-form="' + form_id + '">RETRY</a></div></div>';
+                                    saline.modal(msg, results);
+                                }
+                            })
+                        }
+                        else
+                        {
+                            if(response.success)
+                            {
+                                var txid = 'N/A';
+                                var title = 'Minted Tokens';
+                                
+                                if
+                                (
+                                    typeof response.data == 'object'
+                                    && typeof response.data.mint == 'string'
+                                )
+                                {
+                                    txid = response.data.mint
+                                }
+                                
+                                var msg = '<alert class="alert alert-block alert-info"><small>Transaction ID:<br /><pre>' + txid + '</pre></small></alert>';
+                                saline.modal(title, msg);
+                            }
+                            else
+                            {
+                                saline.modal('Mint Warning', response.message);
+                            }
+                        }
+                    })
+                }
+                ordit.sdk.dnkeys(username, function(dnkeys)
+                {   
+                    if(typeof dnkeys["saline-salt"] != 'undefined')
+                    {
+                        var dns = dnkeys["saline-salt"];
+                        
+                        async function recover()
+                        {
+                            var salt = username + '_' + pin + '_' + password;
+                            var hash = bitcointp.crypto.sha256(Buffer.from(salt), 'utf8').toString('hex');
+                            var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
+                            var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
+
+                            saline.sodium.keys(user_secret, function(user_keys)
+                            {
+                                if(user_keys)
+                                {   
+                                    saline.sodium.decrypt
+                                    (
+                                        dns,
+                                        user_keys, 
+                                        async function(decrypted_personal_salt)
+                                        {   
+                                            if(decrypted_personal_salt)
+                                            { 
+                                                var data = saline.db.db.salt;
+                                                saline.sodium.decrypt
+                                                (
+                                                    data,
+                                                    user_keys, 
+                                                    async function(decrypted_device_salt)
+                                                    {
+                                                        var ds = decrypted_device_salt;
+                                                        var ps = decrypted_personal_salt;
+                                                        var secret = ds + '_' + salt + '_' + ps + '_' + username + '_' + password;
+                                                        var hashed = bitcointp.crypto.sha256(Buffer.from(secret), 'utf8').toString('hex');
+                                                        var bip = bip39.entropyToMnemonic(Buffer.from(hashed, 'hex'), bip39.wordlists.english);
+                                                        var seed = await bip39.mnemonicToEntropy(bip).toString('hex');
+                                                        
+                                                        var mint_options = 
+                                                        {
+                                                            seed: seed,
+                                                            symbol: ticker,
+                                                            amount: amount,
+                                                            fees: actual_fees,
+                                                            network: saline.db.db.defaults.network
+                                                        };
+                                                        
+                                                        mint_tokens(mint_options, seed, saline.db.wallet.addresses[0].address);
+                                                    }
+                                                );
+                                            }
+                                            else
+                                            {
+                                                saline.modal('Mint Warning', 'Unable to decrypt DNS data');
+                                            }
+                                        }
+                                    );
+                                }
+                                else
+                                {
+                                    saline.modal('Mint Warning', 'Unable to locate DNS data');
+                                }
+                            });
+                        }
+                        recover();
+                    }
+                    else
+                    {
+                        saline.modal('Mint Warning', 'Unable to verify DNS data');
+                    }
+                });
+            }
+            else
+            {
+                saline.modal('Mint Warning', 'Invalid deploy options');
+            }
+        });
+        jQuery('body').on('submit', '.' + transfertoken, function(e)
+        {
+            e.preventDefault();
+            var form = jQuery(this);
+            
+            var ticker = jQuery(form).find('#' + transfertoken + '-0').val();
+            var amount = parseInt(jQuery(form).find('#' + transfertoken + '-1').val());
+            var fees = jQuery(form).find('#' + transfertoken + '-2').val();
+
+            var username = jQuery(form).find('#' + transfertoken + '-3').val();
+            var pin = jQuery(form).find('#' + transfertoken + '-4').val();
+            var password = jQuery(form).find('#' + transfertoken + '-5').val();
+            
+            var postage = 10000;
+            var actual_fees = 0;
+            if(fees) actual_fees = parseInt(fees);
+            
+            if
+            (
+                pin && ticker && amount
+                && username && password
+                && username != password
+            )
+            {
+                saline.loader(true, 'PREPARING');
+                
+                var transfer_tokens = function(these_options, this_seed, this_address)
+                {
+                    ordit.sdk.tokens.transfer(these_options, function(response)
+                    {
+                        if
+                        (
+                            typeof response.data == 'object'
+                            && typeof response.data.address == 'string'
+                            && typeof response.data.fees == 'number'
+                        )
+                        {
+                            // Need to check if ready for reveal ...?
+                            ordit.sdk.inscription.psbt({
+                                seed: this_seed,
+                                media_content: response.data.media_content,
+                                media_type: response.data.media_type,
+                                destination: this_address,
+                                change_address: this_address,
+                                fees: response.data.fees,
+                                network: saline.db.db.defaults.network,
+                                recovery: false
+                            },  function(reveal)
+                            {
+                                if(reveal.success)
+                                {
+                                    ordit.sdk.psbt.sign({
+                                        seed: this_seed, 
+                                        hex: reveal.data.hex,
+                                        network: saline.db.db.defaults.network,
+                                        tweaked: false
+                                    }, 
+                                    function(signed)
+                                    {
+                                        if
+                                        (
+                                            signed.success
+                                            && typeof signed.data.hex != 'undefined'
+                                            && signed.data.hex
+                                        )
+                                        {
+                                            ordit.sdk.txid.get({
+                                                hex: signed.data.hex,
+                                                network: saline.db.db.defaults.network
+                                            }, 
+                                            function(relayed)
+                                            {
+                                                if(relayed.success)
+                                                {
+                                                    var txid = relayed.data.txid;
+                                                    var results = '<alert class="alert alert-block alert-info"><small>Transaction ID:<br /><pre>' + txid + '</pre></small></alert>';
+                                                    saline.modal('Success', results);
+                                                }
+                                                else
+                                                {
+                                                    saline.modal('Transfer Warning', 'Unable to relay TX');
+                                                }
+                                            });
+                                        }
+                                        else
+                                        {
+                                            saline.modal('Transfer Warning', 'Unable to sign PSBT');
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    // Show commit details ...
+                                    var msg = 'Prepare Tokens';
+                                    var form_id = '.form-ordit-prepare-transfer';
+                                    var sats = (response.data.fees + postage);
+                                    var btc = parseFloat(sats / (10 ** 8));
+                                    var results = '<alert class="alert alert-block alert-info"><small style="text-transform: uppercase;">' + response.message + '<hr>Requires single <b>spendable</b> of ' + btc + ' BTC<br /><small>( ' + sats + ' cardinals / safe to spend sats )</small></small></alert>';
+                                    results+= '<div class="row"><div class="col-sm-3"></div><div class="col-sm-6"><div class="qr-holder" data-content="' + response.data.address + '"></div></div><div class="col-sm-3"></div></div><hr><pre>' + response.data.address + '</pre><div class="row"><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-ordit-copy" data-content="' + response.data.address + '">COPY</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recover="1" data-form="' + form_id + '">RECOVER</a></div><div class="col-sm-4"><a href="#" class="btn btn-block btn-primary btn-retry-form" data-recoer="0" data-form="' + form_id + '">RETRY</a></div></div>';
+                                    saline.modal(msg, results);
+                                }
+                            })
+                        }
+                        else
+                        {
+                            if(response.success)
+                            {
+                                var txid = 'N/A';
+                                var title = 'Prepared Tokens';
+                                
+                                if
+                                (
+                                    typeof response.data == 'object'
+                                    && typeof response.data.mint == 'string'
+                                )
+                                {
+                                    txid = response.data.mint
+                                }
+                                
+                                var msg = '<alert class="alert alert-block alert-info"><small>Transaction ID:<br /><pre>' + txid + '</pre></small></alert>';
+                                saline.modal(title, msg);
+                            }
+                            else
+                            {
+                                saline.modal('Transfer Warning', response.message);
+                            }
+                        }
+                    })
+                }
+                ordit.sdk.dnkeys(username, function(dnkeys)
+                {   
+                    if(typeof dnkeys["saline-salt"] != 'undefined')
+                    {
+                        var dns = dnkeys["saline-salt"];
+                        
+                        async function recover()
+                        {
+                            var salt = username + '_' + pin + '_' + password;
+                            var hash = bitcointp.crypto.sha256(Buffer.from(salt), 'utf8').toString('hex');
+                            var m = bip39.entropyToMnemonic(Buffer.from(hash, 'hex'), bip39.wordlists.english);
+                            var user_secret = await bip39.mnemonicToEntropy(m).toString('hex');
+
+                            saline.sodium.keys(user_secret, function(user_keys)
+                            {
+                                if(user_keys)
+                                {   
+                                    saline.sodium.decrypt
+                                    (
+                                        dns,
+                                        user_keys, 
+                                        async function(decrypted_personal_salt)
+                                        {   
+                                            if(decrypted_personal_salt)
+                                            { 
+                                                var data = saline.db.db.salt;
+                                                saline.sodium.decrypt
+                                                (
+                                                    data,
+                                                    user_keys, 
+                                                    async function(decrypted_device_salt)
+                                                    {
+                                                        var ds = decrypted_device_salt;
+                                                        var ps = decrypted_personal_salt;
+                                                        var secret = ds + '_' + salt + '_' + ps + '_' + username + '_' + password;
+                                                        var hashed = bitcointp.crypto.sha256(Buffer.from(secret), 'utf8').toString('hex');
+                                                        var bip = bip39.entropyToMnemonic(Buffer.from(hashed, 'hex'), bip39.wordlists.english);
+                                                        var seed = await bip39.mnemonicToEntropy(bip).toString('hex');
+                                                        
+                                                        var transfer_options = 
+                                                        {
+                                                            seed: seed,
+                                                            symbol: ticker,
+                                                            amount: amount,
+                                                            fees: actual_fees,
+                                                            network: saline.db.db.defaults.network
+                                                        };
+                                                        
+                                                        transfer_tokens(transfer_options, seed, saline.db.wallet.addresses[0].address);
+                                                    }
+                                                );
+                                            }
+                                            else
+                                            {
+                                                saline.modal('Transfer Warning', 'Unable to decrypt DNS data');
+                                            }
+                                        }
+                                    );
+                                }
+                                else
+                                {
+                                    saline.modal('Transfer Warning', 'Unable to locate DNS data');
+                                }
+                            });
+                        }
+                        recover();
+                    }
+                    else
+                    {
+                        saline.modal('Transfer Warning', 'Unable to verify DNS data');
+                    }
+                });
+            }
+            else
+            {
+                saline.modal('Transfer Warning', 'Invalid deploy options');
             }
         });
         jQuery('body').on('submit', '.' + mint, function(e)
@@ -3617,6 +4251,76 @@ var saline =
     },
     buttons: function()
     {
+        jQuery('body').on('click', '.btn-ordit-mint-more-tokens', function(e)
+        {
+            e.preventDefault();
+            var button = jQuery(this);
+            var tick = jQuery(button).attr('data-symbol');
+            var limit = jQuery(button).attr('data-limit');
+            jQuery('#form-ordit-mint-tokens-0').val(tick);
+            jQuery('#form-ordit-mint-tokens-1').val(limit);
+        });
+        jQuery('body').on('click', '.btn-ordit-prepare-more-tokens', function(e)
+        {
+            e.preventDefault();
+            var button = jQuery(this);
+            var tick = jQuery(button).attr('data-symbol');
+            var limit = jQuery(button).attr('data-limit');
+            jQuery('#form-ordit-prepare-transfer-0').val(tick);
+            jQuery('#ordit-preptoken-reserves').text(limit);
+        });
+        jQuery('body').on('click', '.btn-ordit-display-token-info', function(e)
+        {
+            e.preventDefault();
+            var button = jQuery(this);
+            var type = jQuery(button).attr('data-type');
+            var tick = jQuery(button).attr('data-tick');
+            var decimal = jQuery(button).attr('data-decimal');
+            var balance = jQuery(button).attr('data-balance');
+            var reserve = jQuery(button).attr('data-reserve');
+            var amount = jQuery(button).attr('data-amount');
+            var max = jQuery(button).attr('data-max');
+            var remain = parseInt(jQuery(button).attr('data-remain'));
+            var reserves = parseInt(jQuery(button).attr('data-available'));
+            var transferable = parseInt(jQuery(button).attr('data-transferable'));
+            var remaining = jQuery(button).attr('data-remaining');
+            var inscription = jQuery(button).attr('data-inscription');
+            var limit = jQuery(button).attr('data-limit');
+            if(type && tick && decimal && balance && reserve && amount && max)
+            {
+                var contents = '<alert class="alert alert-block alert-info">';
+                contents+= '<small><strong>' + tick + '</strong> (' + type + ')</small>';
+                contents+= '<br /><small>Current Supply: ' + amount + '</small>';
+                contents+= '<br /><small>Maximum Supply: ' + max + '</small>';
+                if(remain)
+                {
+                    contents+= '<br /><small>Mintable: ' + remaining + '</small>';
+                }
+                contents+= '<hr>';
+                contents+= '<small><strong><small>THIS WALLET</small></strong></small>';
+                contents+= '<br /><br /><strong>Reserves:</strong> ' + reserve;
+                
+                if(reserves)
+                {
+                    contents+= ' <small><a href="#" class="btn btn-sm btn-outline-light btn-ordit-prepare-more-tokens" data-symbol="' + tick + '" data-limit="' + reserves +'" data-bs-toggle="modal" data-bs-target="#ordit-preptoken-modal" style="margin-top:-7px;"><small>prepare transfers</small></a></small>';
+                }
+                
+                contents+= '<br /><br /><strong>Transferable:</strong> ' + balance;
+                
+                if(transferable)
+                {
+                    var txs = [];
+                    for(t = 0; t < saline.db.wallet.inscriptions.length; t++)
+                    {
+                        var tx = saline.db.wallet.inscriptions[t];
+                        
+                    }
+                }
+                
+                contents+= '</alert>';
+                saline.modal(tick + ' Info', contents);
+            }
+        });
         jQuery('body').on('click', '.btn-oip-meta', function(e)
         {
             e.preventDefault();
@@ -4695,6 +5399,126 @@ var load_saline = function()
                     }
                 ]
             });
+            
+            saline.db.html.forms.deploytoken = saline.html.forms.create({
+                css: 'form-ordit-deploy-token',
+                fields:
+                [
+                    {
+                        type: 'text',
+                        label: 'Ticker',
+                        placeholder: 'Must be 4 characters ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Decimals',
+                        placeholder: 'If used remeber to account for it ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Max Supply',
+                        placeholder: 'Remember to account for decimals ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Mint Limit',
+                        placeholder: 'Mint limit per transaction ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Fees',
+                        placeholder: 'Sats per vByte to pay for inscriptions ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Username',
+                        placeholder: 'Provide a domain-based username ...'
+                    },
+                    {
+                        type: 'number',
+                        label: 'PIN',
+                        placeholder: 'Required to authenticate action'
+                    },
+                    {
+                        type: 'password',
+                        label: 'Password',
+                        placeholder: 'Also required for this action ...'
+                    }
+                ]
+            });
+            saline.db.html.forms.minttoken = saline.html.forms.create({
+                css: 'form-ordit-mint-tokens',
+                fields:
+                [
+                    {
+                        type: 'text',
+                        label: 'Ticker',
+                        placeholder: 'Must be 4 characters ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Amount',
+                        placeholder: 'Amount to mint ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Fees',
+                        placeholder: 'Sats per vByte to pay for inscriptions ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Username',
+                        placeholder: 'Provide a domain-based username ...'
+                    },
+                    {
+                        type: 'number',
+                        label: 'PIN',
+                        placeholder: 'Required to authenticate action'
+                    },
+                    {
+                        type: 'password',
+                        label: 'Password',
+                        placeholder: 'Also required for this action ...'
+                    }
+                ]
+            });
+            saline.db.html.forms.transfertoken = saline.html.forms.create({
+                css: 'form-ordit-prepare-transfer',
+                fields:
+                [
+                    {
+                        type: 'text',
+                        label: 'Ticker',
+                        placeholder: 'Must be 4 characters ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Amount',
+                        placeholder: 'Amount to prepare ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Fees',
+                        placeholder: 'Sats per vByte to pay for inscriptions ...'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Username',
+                        placeholder: 'Provide a domain-based username ...'
+                    },
+                    {
+                        type: 'number',
+                        label: 'PIN',
+                        placeholder: 'Required to authenticate action'
+                    },
+                    {
+                        type: 'password',
+                        label: 'Password',
+                        placeholder: 'Also required for this action ...'
+                    }
+                ]
+            });
+            
             saline.db.html.forms.verify = saline.html.forms.create({
                 css: 'form-ordit-wallet-verify',
                 fields:

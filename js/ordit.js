@@ -21,7 +21,7 @@ exports.sdk =
         {
             mainnet:
             {
-                rpc: 'https://trinity.ordit.io/rpc',
+                rpc: 'https://mainnet.ordit.io/rpc',
                 dns: 'https://dns.google/resolve',
                 orderbook: '1H4vvBnr62YWQmvNSt8Z4pDw3Vcv1n5xz7',
                 formats:
@@ -51,7 +51,7 @@ exports.sdk =
             },
             regtest:
             {
-                rpc: 'https://trinity-regtest.ordit.io/rpc',
+                rpc: 'https://regtest.ordit.io/rpc',
                 dns: 'https://dns.google/resolve',
                 orderbook: 'bcrt1q2ys7qws8g072dqe3psp92pqz93ac6wmztexkh5',
                 formats:
@@ -81,7 +81,7 @@ exports.sdk =
             },
             testnet:
             {
-                rpc: 'https://trinity-testnet.ordit.io/rpc',
+                rpc: 'https://testnet.ordit.io/rpc',
                 dns: 'https://dns.google/resolve',
                 orderbook: 'tb1qfnw26753j7kqu3q099sd48htvtk5wm4e0enmru',
                 formats:
@@ -435,8 +435,6 @@ exports.sdk =
                                     valid_inscription = true;
                                 }
                             }
-                            
-                            console.log('m', m);
 
                             if(valid_inscription)
                             {   
@@ -1239,6 +1237,135 @@ exports.sdk =
     },
     apis:
     {
+        brc20: function(params = {}, callback = false)
+        {
+            var options = 
+            {
+                symbol: false,
+                address: false,
+                network: 'testnet'
+            };
+            var results = 
+            {
+                success: false,
+                message: 'Invalid options for apis.brc20',
+                data: false
+            }
+            Object.assign(options, params);
+            if
+            (
+                (
+                    options.symbol 
+                    ||
+                    options.address
+                )
+                && options.network 
+                && typeof callback == 'function'
+            )
+            {    
+                var brc20_request = false
+                
+                if(options.address)
+                {
+                    brc20_request = 
+                    {
+                        method: 'Brc20.Address.GetTokens',
+                        network: options.network,
+                        data: { address: options.address, include: ["token"] }
+                    }
+                }
+                else
+                {
+                    brc20_request = 
+                    {
+                        method: 'Brc20.GetToken',
+                        network: options.network,
+                        data: { tick: options.symbol }
+                    }
+                }
+                
+                ordit.sdk.rpc(brc20_request, function(brc20)
+                {
+                    if(brc20.success)
+                    {
+                        results.success = true;
+                        results.message = 'BRC20 data attached to data';
+                        
+                        var these_tokens = brc20.rdata;
+                        
+                        if
+                        (
+                            typeof options.address == 'string'
+                            && typeof options.symbol == 'string'
+                        )
+                        {
+                            var original_tokens = JSON.parse(JSON.stringify(these_tokens));
+                            these_tokens = [];
+                            for(t = 0 ; t < original_tokens.length; t++)
+                            {
+                                if(original_tokens[t].tick == options.symbol)
+                                {
+                                    these_tokens.push(original_tokens[t]);
+                                }
+                            }
+                        }
+                        
+                        for(t = 0 ; t < these_tokens.length; t++)
+                        {
+                            
+                            var decimal = 0;
+                            these_tokens[t].type = 'BRC20';
+                            if
+                            (
+                                typeof these_tokens[t].token == 'object'
+                            )
+                            {
+                                if(typeof these_tokens[t].token.decimal != 'undefined')
+                                {
+                                    decimal = these_tokens[t].token.decimal;
+                                }
+                                else
+                                {
+                                    these_tokens[t].token.decimal = decimal;
+                                }
+                                
+                                these_tokens[t].display = 
+                                {
+                                    available: ordit.sdk.utils.float(these_tokens[t].available, decimal),
+                                    total: ordit.sdk.utils.float(these_tokens[t].total, decimal),
+                                    transferable: ordit.sdk.utils.float(these_tokens[t].transferable, decimal)
+                                }
+                                
+                                var remaining = these_tokens[t].token.max - these_tokens[t].token.amount;
+                                these_tokens[t].token.remaining = remaining;
+                                
+                                these_tokens[t].display.max = ordit.sdk.utils.float(these_tokens[t].token.max, decimal);
+                                
+                                these_tokens[t].display.amount = ordit.sdk.utils.float(these_tokens[t].token.amount, decimal);
+                                
+                                these_tokens[t].display.limit = ordit.sdk.utils.float(these_tokens[t].token.limit, decimal);
+                                these_tokens[t].display.remaining = ordit.sdk.utils.float(these_tokens[t].token.remaining, decimal);
+                            }
+                        }
+                        
+                        results.data = these_tokens;
+                    }
+                    else
+                    {
+                        results.message = 'Unable to get BRC20 data';
+                        if(typeof brc20.message)
+                        {
+                            results.message = brc20.message;
+                        }
+                    }
+                    callback(results);
+                });
+            }
+            else if(typeof callback == 'function')
+            {
+                callback(results);
+            }
+        },
         fees: function(params = {}, callback = false)
         {
             var options = 
@@ -1288,6 +1415,104 @@ exports.sdk =
                     }
                     callback(results);
                 });
+            }
+            else if(typeof callback == 'function')
+            {
+                callback(results);
+            }
+        },
+        inscriptions: function(params = {}, callback = false)
+        {
+            var options = 
+            {
+                address: false,
+                network: 'testnet'
+            };
+            Object.assign(options, params);
+            var results = 
+            {
+                success: false,
+                message: 'Invalid options for apis.inscriptions',
+                data: options
+            }
+            
+            if(options.address && options.network && typeof callback == 'function')
+            {
+                var total_inscriptions = [];
+                var check_for_inscriptions = function(page)
+                {
+                    var inscription_options = 
+                    {
+                        method: 'Ordinals.GetInscriptions',
+                        data: 
+                        { 
+                            filter: 
+                            {
+                                owner: options.address
+                            },
+                            pagination: 
+                            {
+                                limit: 25
+                            }
+                        },
+                        network: options.network
+                    };
+                    
+                    if(page)
+                    {
+                        inscription_options.data.pagination.next = page;
+                    }
+                    ordit.sdk.rpc(inscription_options, function(these_ins)
+                    {
+                        if(these_ins.success)
+                        {
+                            var next = false;
+                            if
+                            (
+                                typeof these_ins.rdata.pagination == 'object'
+                                && typeof these_ins.rdata.pagination.next == 'string'
+                            )
+                            {
+                                next = these_ins.rdata.pagination.next;
+                            }
+                            if(total_inscriptions.length < 1)
+                            {
+                                total_inscriptions = these_ins.rdata.inscriptions;
+                            }
+                            else
+                            {
+                                for(i = 0; i < these_ins.rdata.inscriptions.length; i++)
+                                {
+                                    total_inscriptions.push(these_ins.rdata.inscriptions[i]);
+                                }
+                            }
+                            if(next)
+                            {
+                                check_for_inscriptions(next);
+                            }
+                            else
+                            {
+                                results.success = true;
+                                results.message = 'Inscriptions attached to data';
+                                results.data = 
+                                {
+                                    inscriptions: total_inscriptions
+                                };
+                                callback(JSON.parse(JSON.stringify(results)));
+                            }
+                        }
+                        else
+                        {
+                            results.message = 'Unable to get inscriptions';
+                            if(typeof these_ins.message)
+                            {
+                                results.message = these_ins.message;
+                            }
+                            callback(JSON.parse(JSON.stringify(results)));
+                        }
+                    });
+                }
+                check_for_inscriptions(false);
             }
             else if(typeof callback == 'function')
             {
@@ -1363,41 +1588,31 @@ exports.sdk =
             
             if(options.address && options.network && typeof callback == 'function')
             {   
-                /*
                 ordit.sdk.rpc({
-                    method: 'Sado.GetOrderbook',
+                    method: 'Ordinals.GetOrdinals',
                     data: 
                     { 
-                        address: options.address,
-                        pagination: 
-                        {
-                            limit: 50
-                        }
+                        address: options.address
                     },
                     network: options.network
-                }, function(so)
+                }, function(ord)
                 {
-                    if(so.success)
+                    if(ord.success)
                     {
                         results.success = true;
-                        results.message = 'Orderbook attached to data';
-                        results.data = so.rdata;
+                        results.message = 'Ordinals attached to data';
+                        results.data = ord.rdata;
                     }
                     else
                     {
-                        results.message = 'Unable to get orderbook';
-                        if(typeof so.message)
+                        results.message = 'Unable to get ordinals';
+                        if(typeof ord.message)
                         {
-                            results.message = so.message;
+                            results.message = ord.message;
                         }
                     }
                     callback(results);
                 });
-                */
-                results.success = true;
-                results.message = 'Ordinals attached to data';
-                results.data = [];
-                callback(results);
             }
             else if(typeof callback == 'function')
             {
@@ -1676,39 +1891,40 @@ exports.sdk =
         Object.assign(options, params);
         if(options.method && options.data && options.network && typeof callback == 'function')
         { 
-            var normalized_callback = function(res)
-            {
-                var results = 
+            var normalized_callback = function(resolved)
+            {   
+                var these_results = 
                 {
                     success: false,
                     rdata: false
                 };
-                if(typeof res.result != 'undefined')
+                if(typeof resolved.result != 'undefined')
                 {
-                    results.success = true;
-                    results.rdata = res.result;
+                    these_results.success = true;
+                    these_results.rdata = resolved.result;
                 }
-                if(typeof res.message != 'undefned')
+                if(typeof resolved.message != 'undefned')
                 {
-                    results.message = res.message;
-                    if(typeof res.data != 'undefined' && typeof res.data != 'object')
+                    these_results.message = resolved.message;
+                    if(typeof resolved.data != 'undefined' && typeof resolved.data != 'object')
                     {
-                        results.message+= ': ' + rees.data;
+                        these_results.message+= ': ' + resolved.data;
                     }
                 }
-                if(typeof res.error != 'undefined' && typeof res.error.message != 'undefined')
+                if(typeof resolved.error != 'undefined' && typeof resolved.error.message != 'undefined')
                 {
-                    results.message = res.error.message;
-                    if(typeof res.error.data != 'undefined')
+                    these_results.message = resolved.error.message;
+                    if(typeof resolved.error.data != 'undefined')
                     {
-                        results.message+= ': ' + res.error.data;
+                        these_results.message+= ': ' + resolved.error.data;
                     }
                 }
-                callback(results);
+                callback(JSON.parse(JSON.stringify(these_results)));
             }
             try
             {
                 var uri = ordit.sdk.config.apis[options.network].rpc;
+                
                 
                 var json_request = 
                 {
@@ -1732,7 +1948,6 @@ exports.sdk =
                 {
                     full_request.headers.authorization = options.key;
                 }
-                
                 fetch
                 (
                     uri, 
@@ -1740,7 +1955,6 @@ exports.sdk =
                 )
                 .then(response => response.json())
                 .then(response => normalized_callback(response))
-                .catch(response => normalized_callback(false))
             }
             catch(err)
             {
@@ -2330,6 +2544,7 @@ exports.sdk =
                 path: false,
                 network: 'testnet',
                 ordinals: true,
+                tokens: true,
                 format: 'all'
             };
             Object.assign(options, params);
@@ -2420,242 +2635,322 @@ exports.sdk =
                             {
                                 if(unspent.success)
                                 {
-                                    wallet.addresses[i].unspents = [];
-                                    
-                                    var these_ordinals = [];
-                                    
-                                    var unspents_ready = function()
+                                    ordit.sdk.apis.inscriptions({
+                                        address: address,
+                                        network: options.network
+                                    },  function(insc)
                                     {
-                                        if(typeof unspent.data == 'object' && unspent.data.length > 0)
+                                        var inscriptions = [];
+                                        if
+                                        (
+                                            insc.success 
+                                            && typeof insc.data == 'object'
+                                            && typeof insc.data.inscriptions == 'object'
+                                            && insc.data.inscriptions.length > 0
+                                        )
                                         {
-                                            for(u = 0; u < unspent.data.length; u++)
+                                            inscriptions = insc.data.inscriptions;
+                                        }
+
+
+                                        wallet.addresses[i].unspents = [];
+
+                                        var these_ordinals = [];
+                                        var these_tokens = [];
+                                        var got_tokens = false;
+
+                                        var unspents_ready = function()
+                                        {
+                                            if(typeof unspent.data == 'object' && unspent.data.length > 0)
                                             {
-                                                var un = unspent.data[u];
-
-                                                un.fees = parseFloat(un.sats / (10 ** 8)).toFixed(8);
-
-                                                wallet.counts.satoshis+= un.sats;
-                                                wallet_satoshis+= un.sats;
-                                                if(un.safeToSpend)
+                                                for(u = 0; u < unspent.data.length; u++)
                                                 {
-                                                    wallet.counts.cardinals+= un.sats;
-                                                    wallet_cardinals+= un.sats;
-                                                    wallet.counts.spendables++;
-                                                    wallet_spendables++;
-                                                    spendables.push(un);
+                                                    var un = unspent.data[u];
+
+                                                    un.fees = parseFloat(un.sats / (10 ** 8)).toFixed(8);
+
+                                                    wallet.counts.satoshis+= un.sats;
+                                                    wallet_satoshis+= un.sats;
+                                                    if(un.safeToSpend)
+                                                    {
+                                                        wallet.counts.cardinals+= un.sats;
+                                                        wallet_cardinals+= un.sats;
+                                                        wallet.counts.spendables++;
+                                                        wallet_spendables++;
+                                                        spendables.push(un);
+                                                    }
+                                                    else
+                                                    {
+                                                        wallet.counts.unspendables++;
+                                                        wallet_unspendables++;
+                                                        unspendables.push(un);
+                                                    }
+                                                    
+                                                    un.ordinals = [];
+                                                    un.inscriptions = [];
+                                                    
+                                                    for(in1 = 0; in1 < inscriptions.length; in1++)
+                                                    {
+                                                        
+                                                        var outpoint = un.txid + ':' + un.n;
+                                                        if(outpoint == inscriptions[in1].outpoint)
+                                                        {
+                                                            un.inscriptions.push(inscriptions[in1]);
+                                                        }
+                                                    }
+                                                    for(or1 = 0; or1 < these_ordinals.length; or1++)
+                                                    {
+                                                        
+                                                        var output = un.txid + ':' + un.n;
+                                                        if(output == these_ordinals[or1].output)
+                                                        {
+                                                            un.ordinals.push(these_ordinals[or1]);
+                                                        }
+                                                    }
+
+                                                    var ord = un.ordinals;
+                                                    var ins = un.inscriptions;
+
+                                                    for(od = 0; od < ord.length; od++)
+                                                    {
+                                                        ord[od].address = address;
+                                                        ord[od].unspent = un.txid;
+                                                        ord[od].value = parseFloat(ord[od].size / (10 ** 8));
+
+                                                        var safeToSpend = true;
+                                                        for(is1 = 0; is1 < ins.length; is1++)
+                                                        {
+                                                            if
+                                                            (
+                                                                ins[is1].sat == ord[od].number
+                                                                || 
+                                                                (
+                                                                    ord[od].rarity != 'common'
+                                                                    &&
+                                                                    ord[od].rarity != 'uncommon'
+                                                                )
+                                                            )
+                                                            {
+                                                                safeToSpend = false;
+                                                            }
+                                                        }
+                                                        ord[od].safeToSpend = safeToSpend;
+
+                                                        ordinals.push(ord[od]);
+                                                    }
+                                                    for(is = 0; is < ins.length; is++)
+                                                    {
+                                                        ins[is].fake = false;
+                                                        ins[is].verified = false;
+                                                        ins[is].unspent = un.txid;
+                                                        ins[is].sid = un.txid + ':' + un.n;
+                                                        ins[is].fees = parseFloat(ins[is].fee / (10 ** 8)).toFixed(8);
+
+                                                        if
+                                                        (
+                                                            typeof jQuery != 'undefined' 
+                                                            && typeof jQuery.timeago == 'function'
+                                                        )
+                                                        {
+                                                            ins[is].ago = jQuery.timeago(ins[is].timestamp * 1000);
+                                                        }
+
+                                                        if
+                                                        (
+                                                            typeof ins[is].meta == 'object'
+                                                            && typeof ins[is].meta.p != 'undefined'
+                                                            && typeof ins[is].meta.ty != 'undefined'
+                                                            && ins[is].meta.ty == 'col'
+                                                            && ins[is].meta.p == 'vord'
+                                                        )
+                                                        {
+                                                            collections.push(ins[is]);
+                                                            wallet_collections++;
+                                                        }
+                                                        else if
+                                                        (
+                                                            typeof ins[is].meta == 'object'
+                                                            && typeof ins[is].meta.p != 'undefined'
+                                                            && typeof ins[is].meta.ty != 'undefined'
+                                                            && typeof ins[is].meta.sig != 'undefined'
+                                                            && ins[is].meta.ty == 'insc'
+                                                            && ins[is].meta.p == 'vord'
+                                                        )
+                                                        {   
+                                                            ordit.sdk.message.verify({
+                                                                key: ins[is].meta.publ,
+                                                                message: ins[is].meta.col + ' ' + ins[is].meta.iid + ' ' + ins[is].meta.nonce,
+                                                                signature: ins[is].meta.sig,
+                                                                network: options.network
+                                                            },  function(verified)
+                                                            {
+                                                                if(verified.success)
+                                                                {
+                                                                    ins[is].verified = true;
+                                                                    verifieds.push(ins[is]);
+                                                                }
+                                                                else
+                                                                {
+                                                                    ins[is].fake = true;
+                                                                }
+                                                            })
+                                                        }
+                                                        ins[is].address = address;
+                                                        ins[is].value = parseFloat((ins[is].fee + un.sats) / (10 ** 8));
+
+                                                        if(typeof ins[is].media_type == 'undefined' && typeof ins[is].mediaType != 'undefined')
+                                                        {
+                                                            ins[is].media_type = ins[is].mediaType;
+                                                        }
+                                                        if(typeof ins[is].media_content == 'undefined' && typeof ins[is].mediaContent != 'undefined')
+                                                        {
+                                                            ins[is].media_content = ins[is].mediaContent;
+                                                        }
+                                                        if(typeof ins[is].media_size == 'undefined' && typeof ins[is].mediaSize != 'undefined')
+                                                        {
+                                                            ins[is].media_size = ins[is].mediaSize;
+                                                        }
+
+                                                        ins[is].formats = 
+                                                        {
+                                                            image: false,
+                                                            audio: false,
+                                                            video: false,
+                                                            html: false,
+                                                            text: false
+                                                        }
+                                                        if(ins[is].media_type.indexOf('text/html') === 0)
+                                                        {
+                                                            ins[is].formats.html = true;
+                                                            ins[is].type = 'html';
+                                                        }
+                                                        else if(ins[is].media_type.indexOf('image') === 0)
+                                                        {
+                                                            ins[is].formats.image = true;
+                                                            ins[is].type = 'image';
+                                                        }
+                                                        else if(ins[is].media_type.indexOf('audio') === 0)
+                                                        {
+                                                            ins[is].formats.audio = true;
+                                                            ins[is].type = 'audio';
+                                                        }
+                                                        else if(ins[is].media_type.indexOf('video') === 0)
+                                                        {
+                                                            ins[is].formats.video = true;
+                                                            ins[is].type = 'video';
+                                                        }
+                                                        else if
+                                                        (
+                                                            ins[is].media_type.indexOf('text') === 0
+                                                            || ins[is].media_type.indexOf('json') > -1
+                                                        )
+                                                        {
+                                                            ins[is].formats.text = true;
+                                                            ins[is].type = 'text';
+                                                        }
+                                                    }
+                                                    wallet.addresses[i].unspents.push(un);
+                                                }
+                                            }
+
+                                            wallet.counts.unspents+= unspent.data.length;
+                                            wallet_unspents+= unspent.data.length;
+
+                                            wallet.spendables = spendables;
+                                            wallet.unspendables = unspendables;
+                                            wallet.ordinals = ordinals;
+                                            wallet.inscriptions = inscriptions;
+                                            wallet.collections = collections;
+                                            wallet.verifieds = verifieds;
+                                            wallet.tokens = these_tokens;
+
+                                            wallet.counts.ordinals = ordinals.length;
+                                            wallet.counts.inscriptions = inscriptions.length;
+                                            wallet.counts.collections = collections.length;
+                                            wallet.counts.verifieds = verifieds.length;
+                                            wallet.counts.tokens = these_tokens.length;
+                                            
+                                            if(these_tokens.length > 0)
+                                            {
+                                                got_tokens = true;
+                                            }
+                                            
+                                            wallet.got_tokens = got_tokens;
+
+                                            wallet.addresses[i].counts = 
+                                            {
+                                                unspents: wallet_unspents,
+                                                satoshis: wallet_satoshis,
+                                                cardinals: wallet_cardinals,
+                                                spendables: wallet_spendables,
+                                                unspendables: wallet_unspendables,
+                                                collections: wallet_collections
+                                            };
+
+                                            completed++;
+                                            if(completed == wallet.addresses.length)
+                                            {
+                                                wallet.dashboard = 
+                                                {
+                                                    satoshis: wallet.counts.satoshis.toLocaleString('en-GB'),
+                                                    cardinals: wallet.counts.cardinals.toLocaleString('en-GB'),
+                                                }
+                                                results.success = true;
+                                                results.message = 'Wallet lookup attached to data';
+                                                results.data = wallet;
+                                                callback(JSON.parse(JSON.stringify(results)));
+                                            }
+
+                                        }
+                                        if(options.ordinals)
+                                        {
+                                            ordit.sdk.apis.ordinals({
+                                                address: wallet.addresses[i].address,
+                                                network: options.network
+                                            },  function(ord)
+                                            {
+                                                if(ord.success && typeof ord.data == 'object')
+                                                {
+                                                    these_ordinals = ord.data;
+                                                }
+                                                if(options.tokens)
+                                                {
+                                                    ordit.sdk.tokens.get({
+                                                        address: wallet.addresses[i].address,
+                                                        network: options.network
+                                                    },  function(tokens)
+                                                    {
+                                                        if(tokens.success)
+                                                        {
+                                                            these_tokens = tokens.data;
+                                                        }
+                                                        unspents_ready();
+                                                    });
                                                 }
                                                 else
                                                 {
-                                                    wallet.counts.unspendables++;
-                                                    wallet_unspendables++;
-                                                    unspendables.push(un);
+                                                    unspents_ready();
                                                 }
-
-                                                //var ord = these_ordinals;
-                                                var ord = un.ordinals;
-                                                var ins = un.inscriptions;
-
-                                                for(od = 0; od < ord.length; od++)
+                                            });
+                                        }
+                                        else
+                                        {
+                                            if(options.tokens)
+                                            {
+                                                ordit.sdk.tokens.get({
+                                                    address: wallet.addresses[i].address,
+                                                    network: options.network
+                                                },  function(tokens)
                                                 {
-                                                    ord[od].address = address;
-                                                    ord[od].unspent = un.txid;
-                                                    ord[od].value = parseFloat(ord[od].size / (10 ** 8));
-
-                                                    var safeToSpend = true;
-                                                    for(is1 = 0; is1 < ins.length; is1++)
-                                                    {
-                                                        if
-                                                        (
-                                                            ins[is1].sat == ord[od].number
-                                                            || 
-                                                            (
-                                                                ord[od].rarity != 'common'
-                                                                &&
-                                                                ord[od].rarity != 'uncommon'
-                                                            )
-                                                        )
-                                                        {
-                                                            safeToSpend = false;
-                                                        }
-                                                    }
-                                                    ord[od].safeToSpend = safeToSpend;
-
-                                                    ordinals.push(ord[od]);
-                                                }
-                                                for(is = 0; is < ins.length; is++)
-                                                {
-                                                    ins[is].fake = false;
-                                                    ins[is].verified = false;
-                                                    ins[is].unspent = un.txid;
-                                                    ins[is].sid = un.txid + ':' + un.n;
-                                                    ins[is].fees = parseFloat(ins[is].fee / (10 ** 8)).toFixed(8);
-
-                                                    if
-                                                    (
-                                                        typeof jQuery != 'undefined' 
-                                                        && typeof jQuery.timeago == 'function'
-                                                    )
-                                                    {
-                                                        ins[is].ago = jQuery.timeago(ins[is].timestamp * 1000);
-                                                    }
-
-                                                    if
-                                                    (
-                                                        typeof ins[is].meta == 'object'
-                                                        && typeof ins[is].meta.p != 'undefined'
-                                                        && typeof ins[is].meta.ty != 'undefined'
-                                                        && ins[is].meta.ty == 'col'
-                                                        && ins[is].meta.p == 'vord'
-                                                    )
-                                                    {
-                                                        collections.push(ins[is]);
-                                                        wallet_collections++;
-                                                    }
-                                                    else if
-                                                    (
-                                                        typeof ins[is].meta == 'object'
-                                                        && typeof ins[is].meta.p != 'undefined'
-                                                        && typeof ins[is].meta.ty != 'undefined'
-                                                        && typeof ins[is].meta.sig != 'undefined'
-                                                        && ins[is].meta.ty == 'insc'
-                                                        && ins[is].meta.p == 'vord'
-                                                    )
-                                                    {   
-                                                        ordit.sdk.message.verify({
-                                                            key: ins[is].meta.publ,
-                                                            message: ins[is].meta.col + ' ' + ins[is].meta.iid + ' ' + ins[is].meta.nonce,
-                                                            signature: ins[is].meta.sig,
-                                                            network: options.network
-                                                        },  function(verified)
-                                                        {
-                                                            if(verified.success)
-                                                            {
-                                                                ins[is].verified = true;
-                                                                verifieds.push(ins[is]);
-                                                            }
-                                                            else
-                                                            {
-                                                                ins[is].fake = true;
-                                                            }
-                                                        })
-                                                    }
-                                                    ins[is].address = address;
-                                                    ins[is].value = parseFloat((ins[is].fee + un.sats) / (10 ** 8));
-
-                                                    if(typeof ins[is].media_type == 'undefined' && typeof ins[is].mediaType != 'undefined')
-                                                    {
-                                                        ins[is].media_type = ins[is].mediaType;
-                                                    }
-                                                    if(typeof ins[is].media_content == 'undefined' && typeof ins[is].mediaContent != 'undefined')
-                                                    {
-                                                        ins[is].media_content = ins[is].mediaContent;
-                                                    }
-                                                    if(typeof ins[is].media_size == 'undefined' && typeof ins[is].mediaSize != 'undefined')
-                                                    {
-                                                        ins[is].media_size = ins[is].mediaSize;
-                                                    }
-
-                                                    ins[is].formats = 
-                                                    {
-                                                        image: false,
-                                                        audio: false,
-                                                        video: false,
-                                                        html: false,
-                                                        text: false
-                                                    }
-                                                    if(ins[is].media_type.indexOf('text/html') === 0)
-                                                    {
-                                                        ins[is].formats.html = true;
-                                                        ins[is].type = 'html';
-                                                    }
-                                                    else if(ins[is].media_type.indexOf('image') === 0)
-                                                    {
-                                                        ins[is].formats.image = true;
-                                                        ins[is].type = 'image';
-                                                    }
-                                                    else if(ins[is].media_type.indexOf('audio') === 0)
-                                                    {
-                                                        ins[is].formats.audio = true;
-                                                        ins[is].type = 'audio';
-                                                    }
-                                                    else if(ins[is].media_type.indexOf('video') === 0)
-                                                    {
-                                                        ins[is].formats.video = true;
-                                                        ins[is].type = 'video';
-                                                    }
-                                                    else if
-                                                    (
-                                                        ins[is].media_type.indexOf('text') === 0
-                                                        || ins[is].media_type.indexOf('json') > -1
-                                                    )
-                                                    {
-                                                        ins[is].formats.text = true;
-                                                        ins[is].type = 'text';
-                                                    }
-                                                    inscriptions.push(ins[is]);
-                                                }
-                                                wallet.addresses[i].unspents.push(un);
+                                                    unspents_ready();
+                                                });
+                                            }
+                                            else
+                                            {
+                                                unspents_ready();
                                             }
                                         }
-
-                                        wallet.counts.unspents+= unspent.data.length;
-                                        wallet_unspents+= unspent.data.length;
-
-                                        wallet.spendables = spendables;
-                                        wallet.unspendables = unspendables;
-                                        wallet.ordinals = ordinals;
-                                        wallet.inscriptions = inscriptions;
-                                        wallet.collections = collections;
-                                        wallet.verifieds = verifieds;
-
-                                        wallet.counts.ordinals = ordinals.length;
-                                        wallet.counts.inscriptions = inscriptions.length;
-                                        wallet.counts.collections = collections.length;
-                                        wallet.counts.verifieds = verifieds.length;
-
-                                        wallet.addresses[i].counts = 
-                                        {
-                                            unspents: wallet_unspents,
-                                            satoshis: wallet_satoshis,
-                                            cardinals: wallet_cardinals,
-                                            spendables: wallet_spendables,
-                                            unspendables: wallet_unspendables,
-                                            collections: wallet_collections
-                                        };
-
-                                        completed++;
-                                        if(completed == wallet.addresses.length)
-                                        {
-                                            wallet.dashboard = 
-                                            {
-                                                satoshis: wallet.counts.satoshis.toLocaleString('en-GB'),
-                                                cardinals: wallet.counts.cardinals.toLocaleString('en-GB'),
-                                            }
-                                            results.success = true;
-                                            results.message = 'Wallet lookup attached to data';
-                                            results.data = wallet;
-                                            callback(results);
-                                        }
-                                        
-                                    }
-                                    if(options.ordinals)
-                                    {
-                                        ordit.sdk.apis.ordinals({
-                                            address: wallet.addresses[i].address,
-                                            network: options.network
-                                        },  function(ord)
-                                        {
-                                            if(ord.success && typeof ord.data == 'object')
-                                            {
-                                                these_ordinals = ord.data;
-                                            }
-                                            unspents_ready();
-                                        });
-                                    }
-                                    else
-                                    {
-                                        unspents_ready();
-                                    }
+                                    });
                                 }
                                 else
                                 {
@@ -2670,7 +2965,7 @@ exports.sdk =
                                         results.success = true;
                                         results.message = 'Wallet lookup attached to data';
                                         results.data = wallet;
-                                        callback(results);
+                                        callback(JSON.parse(JSON.stringify(results)));
                                     }
                                 }
                             });
@@ -5786,7 +6081,7 @@ exports.sdk =
             else if(typeof callback == 'function')
             {
                 callback({
-                    data: false,
+                    data: options,
                     success: false,
                     message: 'Inavlid options for inscription.reveal'
                 });
@@ -5809,10 +6104,8 @@ exports.sdk =
                 {
                     var chunk_content = function(str)
                     {
-                        console.log('str.length', str.length);
                         if(str.length > 519)
                         {
-                            //var strings = str.match(/.{1,520}/g);
                             var strings = str.match(/[^]{1,520}/g);
                             return strings;
                         }
@@ -5871,8 +6164,6 @@ exports.sdk =
                             {
                                 encode_type = 'base64';
                             }
-                            console.log('encode_type', encode_type);
-                            console.log('chunks[c]', chunks[c]);
                             the_scripts.push(op_push(chunks[c], encode_type));
                         }
 
@@ -6106,13 +6397,13 @@ exports.sdk =
                 instant: false,
                 network: 'testnet'
             };
+            Object.assign(options, params);
             var results = 
             {
                 success: false,
-                data: false,
+                data: options,
                 message: 'Invalid options for sado.order'
             };
-            Object.assign(options, params);
             if
             (
                 options.network && typeof callback == 'function'
@@ -6200,10 +6491,10 @@ exports.sdk =
                                 {
                                     rpc_request.data.signature.value = options.sig;
                                     rpc_request.data.order.instant = options.hex;
-                                                    
+                                        
                                     ordit.sdk.rpc(rpc_request, function(sado)
                                     {
-                                        if(typeof sado.rdata != 'undefined')
+                                        if(typeof sado.rdata == 'object')
                                         {
                                             results.success = true;
                                             results.message = 'Unsigned PSBT attached to data';
@@ -6622,6 +6913,47 @@ exports.sdk =
     },
     tokens:
     {
+        get: function(params = {}, callback = false)
+        {
+            var options = 
+            {
+                symbol: false, // MUST be 4 characters
+                network: 'testnet'
+            };
+            Object.assign(options, params);
+            var results = 
+            {
+                success: false,
+                message: 'Invalid options for tokens.get',
+                data: options
+            };
+            if
+            (
+                (
+                options.address
+                ||
+                (options.symbol && options.symbol.length === 4)
+                )
+                && options.network
+                &&
+                (
+                    options.network == 'mainnet'
+                    || options.network == 'testnet'
+                    || options.network == 'regtest'
+                )
+                && typeof callback == 'function'
+            )
+            {
+                ordit.sdk.apis.brc20(options, function(brc20)
+                {
+                    callback(brc20);
+                })
+            }
+            else if(typeof callback == 'function')
+            {
+                callback(results);
+            }
+        },      
         deploy: function(params = {}, callback = false)
         {
             var options = 
@@ -6632,13 +6964,13 @@ exports.sdk =
                 decimals: 0, // optional decimal places used in display 
                 network: 'testnet'
             };
+            Object.assign(options, params);
             var results = 
             {
                 success: false,
                 message: 'Invalid options for tokens.deploy',
-                data: false
+                data: options
             };
-            Object.assign(options, params);
             if
             (
                 options.symbol && options.symbol.length === 4
@@ -6655,161 +6987,50 @@ exports.sdk =
                 && typeof callback == 'function'
             )
             {
-                var decimals = "0";
-                if(parseInt(options.decimals) > 0)
+                ordit.sdk.tokens.get({
+                    symbol: options.symbol, 
+                    network: options.network
+                },  function(brc20)
                 {
-                    decimals = "" + parseInt(options.decimals);
-                }
-                
-                var supply = 
-                {
-                    p: "brc-20",
-                    op: "deploy",
-                    tick: "" + options.symbol,
-                    max: "" + parseInt(options.supply),
-                    lim: "" + parseInt(options.limit),
-                    dec: decimals
-                }
-                
-                var inscription_options = JSON.parse(JSON.stringify(options));
-                inscription_options.media_type = 'application/json;charset=utf-8';
-                inscription_options.media_content = JSON.stringify(supply);
-                
-                ordit.sdk.inscription.address(inscription_options,  function(commit)
-                {
-                    if(commit.success)
+                    if(brc20.success)
                     {
-                        commt.data.content = supply;
-                    }
-                    callback(commit);
-                })
-            }
-            else if(typeof callback == 'function')
-            {
-                callback(results);
-            }
-        },
-        launch: function(params = {}, callback = false)
-        {
-            var options = 
-            {
-                seed: false,
-                connect: false,
-                symbol: false, // MUST be 4 characters
-                supply: 0, // total supply available for minting
-                limit: 0, // the maximum amount that can be minted at any one time
-                decimals: 0, // optional decimal places used in display 
-                mint: 0, // amount to mint after deploying
-                prepare: false, // an array of transfers to prepare
-                network: 'testnet'
-            };
-            var results = 
-            {
-                success: false,
-                message: 'Invalid options for tokens.launch',
-                data: false
-            };
-            Object.assign(options, params);
-            if
-            (
-                options.symbol && options.symbol.length === 4
-                && parseInt(options.supply) > 0
-                && parseInt(options.limit) > 0
-                && parseInt(options.mint) > 0
-                && parseInt(options.supply) >= parseInt(options.limit)
-                && parseInt(options.mint) <= parseInt(options.limit)
-                && options.network 
-                && 
-                (
-                    options.seed
-                    ||
-                    (
-                        options.connect
-                        &&
-                        (
-                            options.connect == 'unisat'
-                            || options.connect == 'xverse'
-                            || options.connect == 'saline'
-                        )
-                    )
-                )
-                &&
-                (
-                    options.network == 'mainnet'
-                    || options.network == 'testnet'
-                    || options.network == 'regtest'
-                )
-                && typeof callback == 'function'
-                && typeof options.prepare == 'object'
-                && options.prepare.length > 0
-            )
-            {
-                ordit.sdk.tokens.deploy(options, function(deployed)
-                {
-                    if(deployed.success)
-                    {
-                        options.format = 'p2tr';
-                        ordit.sdk.balance.get(options, function(wallet)
-                        {
-                            if(wallet.success)
-                            {
-                                var inscribe_options = JSON.parse(JSON.stringify(options));
-                                inscribe_options.media_content = JSON.stringify(deployed.data.content);
-                                inscribe_options.media_type = 'application/json;charset=utf-8';
-                                
-                                ordit.sdk.inscription.psbt({
-                                    seed: options.seed,
-                                    media_content: options.media_content,
-                                    media_type: options.media_type,
-                                    destination: options.destination,
-                                    change_address: commit.data.address,
-                                    fees: commit.data.fees,
-                                    network: options.network,
-                                    meta: commit.data.meta
-                                },  function(reveal)
-                                {
-                                    if(reveal.success)
-                                    {
-                                        var tweaked = false;
-                                        ordit.sdk.psbt.sign({
-                                            seed: options.seed, 
-                                            hex: reveal.data.hex,
-                                            network: options.network,
-                                            tweaked: tweaked
-                                        }, 
-                                        function(signed)
-                                        {
-                                            if(signed.success)
-                                            {
-                                                // TODO - launch BRCO supply
-                                            }
-                                            else
-                                            {
-                                                results.message = signed.message;
-                                                callback(wallet);
-                                            }
-                                        });
-                                    }
-                                    else
-                                    {
-                                        results.message = reveal.message;
-                                        callback(wallet);
-                                    }
-                                });
-                            }
-                            else
-                            {
-                                results.message = wallet.message;
-                                callback(wallet);
-                            }
-                        })
+                        results.message = 'Token already deployed';
+                        callback(results);
                     }
                     else
                     {
-                        results.message = deployed.message;
-                        callback(results);
+                        var decimals = "0";
+                        if(parseInt(options.decimals) > 0)
+                        {
+                            decimals = "" + parseInt(options.decimals);
+                        }
+
+                        var supply = 
+                        {
+                            p: "brc-20",
+                            op: "deploy",
+                            tick: "" + options.symbol,
+                            max: "" + options.supply,
+                            lim: "" + options.limit,
+                            dec: decimals
+                        }
+
+                        var inscription_options = JSON.parse(JSON.stringify(options));
+                        inscription_options.media_type = 'text/plain;charset=utf-8';
+                        inscription_options.media_content = JSON.stringify(supply);
+
+                        ordit.sdk.inscription.address(inscription_options,  function(commit)
+                        {
+                            if(commit.success)
+                            {
+                                commit.data.content = supply;
+                                commit.data.media_content = inscription_options.media_content;
+                                commit.data.media_type = inscription_options.media_type;
+                            }
+                            callback(commit);
+                        })
                     }
-                });
+                })
             }
             else if(typeof callback == 'function')
             {
@@ -6824,13 +7045,13 @@ exports.sdk =
                 amount: 0, // amount to mint
                 network: 'testnet'
             };
+            Object.assign(options, params);
             var results = 
             {
                 success: false,
                 message: 'Invalid options for tokens.mint',
-                data: false
+                data: options
             };
-            Object.assign(options, params);
             if
             (
                 options.symbol && options.symbol.length === 4
@@ -6845,22 +7066,54 @@ exports.sdk =
                 && typeof callback == 'function'
             )
             {   
-                var supply = 
+                ordit.sdk.tokens.get({
+                    symbol: options.symbol, 
+                    network: options.network
+                },  function(brc20)
                 {
-                    p: "brc-20",
-                    op: "mint",
-                    tick: options.symbol,
-                    amt: "" + parseInt(options.amount)
-                }
-                
-                var inscription_options = JSON.parse(JSON.stringify(options));
-                inscription_options.media_type = 'application/json;charset=utf-8';
-                inscription_options.media_content = JSON.stringify(supply);
-                
-                ordit.sdk.inscription.address(inscription_options,  function(commit)
-                {
-                    callback(commit);
-                })
+                    if(brc20.success)
+                    {
+                        if
+                        (
+                            typeof brc20.data.amount == 'number'
+                            && typeof brc20.data.max == 'number'
+                            && brc20.data.amount < brc20.data.max
+                        )
+                        {
+                            var supply = 
+                            {
+                                p: "brc-20",
+                                op: "mint",
+                                tick: options.symbol,
+                                amt: "" + parseInt(options.amount)
+                            }
+
+                            var inscription_options = JSON.parse(JSON.stringify(options));
+                            inscription_options.media_type = 'text/plain;charset=utf-8';
+                            inscription_options.media_content = JSON.stringify(supply);
+
+                            ordit.sdk.inscription.address(inscription_options,  function(commit)
+                            {
+                                if(commit.success)
+                                {
+                                    commit.data.media_type = 'text/plain;charset=utf-8';
+                                    commit.data.media_content = inscription_options.media_content;
+                                }
+                                callback(commit);
+                            })
+                        }
+                        else
+                        {
+                            results.message = 'Token mint max reached';
+                            callback(results);
+                        }
+                    }
+                    else
+                    {
+                        results.message = 'This token not deployed yet';
+                        callback(results);
+                    }
+                });
             }
             else if(typeof callback == 'function')
             {
@@ -6872,11 +7125,7 @@ exports.sdk =
             var options = 
             {
                 symbol: false, // MUST be 4 characters
-                supply: 0, // total supply available for minting
-                limit: 0, // the maximum amount that can be minted at any one time
-                decimals: 0, // optional decimal places used in display 
-                mint: 0, // optionally perform mint after deploy if within supply and limit
-                transfer: false, // optionally perform transfer if / after minting
+                amount: 0, // the amount to prepare for transfer
                 network: 'testnet'
             };
             var results = 
@@ -6900,22 +7149,59 @@ exports.sdk =
                 && typeof callback == 'function'
             )
             {   
-                var supply = 
+                ordit.sdk.tokens.get({
+                    symbol: options.symbol, 
+                    address: saline.db.wallet.addresses[0].address,
+                    network: options.network
+                },  function(brc20)
                 {
-                    p: "brc-20",
-                    op: "transfer",
-                    tick: options.symbol,
-                    amt: "" + parseInt(options.amount)
-                }
-                
-                var inscription_options = JSON.parse(JSON.stringify(options));
-                inscription_options.media_type = 'application/json;charset=utf-8';
-                inscription_options.media_content = JSON.stringify(supply);
-                
-                ordit.sdk.inscription.address(inscription_options,  function(commit)
-                {
-                    callback(commit);
-                })
+                    if(brc20.success)
+                    {
+                        if
+                        (
+                            typeof brc20.data == 'object'
+                            && brc20.data.length == 1
+                            && typeof brc20.data[0] == 'object'
+                            && typeof brc20.data[0].token == 'object'
+                            && typeof brc20.data[0].token.amount == 'number'
+                            && typeof brc20.data[0].token.max == 'number'
+                            && parseInt(options.amount) <= brc20.data[0].available
+                        )
+                        {
+                            var supply = 
+                            {
+                                p: "brc-20",
+                                op: "transfer",
+                                tick: options.symbol,
+                                amt: "" + parseInt(options.amount)
+                            }
+
+                            var inscription_options = JSON.parse(JSON.stringify(options));
+                            inscription_options.media_type = 'text/plain;charset=utf-8';
+                            inscription_options.media_content = JSON.stringify(supply);
+
+                            ordit.sdk.inscription.address(inscription_options,  function(commit)
+                            {
+                                if(commit.success && typeof commit.data == 'object')
+                                {
+                                    commit.data.media_type = inscription_options.media_type;
+                                    commit.data.media_content = inscription_options.media_content;
+                                }
+                                callback(commit);
+                            })
+                        }
+                        else
+                        {
+                            results.message = 'Invalid transfer token options';
+                            callback(results);
+                        }
+                    }
+                    else
+                    {
+                        results.message = brc20.message;
+                        callback(results);
+                    }
+                });
             }
             else if(typeof callback == 'function')
             {
@@ -6991,6 +7277,18 @@ exports.sdk =
             {
                 callback(results);
             }
+        },
+        float: function(num, dec)
+        {
+            var num_float = "" + parseFloat(num / (10 ** dec)).toFixed(dec) + "";
+            var nums = num_float.split('.');
+            var this_num = parseFloat(nums[0]).toLocaleString('en-GB');
+            var display = "" + this_num;
+            if(typeof nums[1] == 'string')
+            {
+                display+= '.' + nums[1];
+            }
+            return display;
         },
         getAddressesFromPublicKey: function(key, format, network)
         {

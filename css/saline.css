@@ -194,6 +194,10 @@ html body .navbar-toggler button:hover i
 {
     color: #FFF;
 }
+html body .nav-link
+{
+    padding: 0.5rem 0.9rem;
+}
 
 
 /*
