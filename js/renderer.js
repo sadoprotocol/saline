@@ -2,8 +2,8 @@ var oip4_renderer =
 {
     config:
     {
-        testing: 'https://trinity-testnet.ordit.io',
-        //testing: false
+        //testing: 'https://regtest.ordit.io',
+        testing: false
     },
     init: function()
     {
@@ -115,8 +115,14 @@ var oip4_renderer =
                         var html = 'FORMAT NOT SUPPORTED';
                         var body = document.querySelector('#main-body');
                         var wrapper = document.querySelector('.oip4-renderer');
+                        var swrapper = document.querySelector('#oip4-scripts');
                         
-                        if(m.mt.indexOf('image') > -1)
+                        if(m.mt == 'application/x-javascript')
+                        {
+                            //eval(file);
+                            eval(Buffer.from(file, 'base64').toString('utf8'));
+                        }
+                        else if(m.mt.indexOf('image') > -1)
                         {
                             html = '<img id="ordit-' + id + '" class="ordit-image" src="data:' + m.mt + ';base64, ' + file + '" type="' + m.mt + '" crossorigin="anonymous" />';
                             

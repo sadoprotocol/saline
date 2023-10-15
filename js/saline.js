@@ -853,7 +853,7 @@ var saline =
             }
             else
             {
-                console.info('out?');
+                
             }
         });
         jQuery('body').on('submit', '.' + regenerate, function(e)
@@ -2775,9 +2775,11 @@ var saline =
             var destination = jQuery(form).find('#' + chunk + '-0').val();
             var file = false;
             var jmeta = jQuery(form).find('#' + chunk + '-2').val();
-            var username = jQuery(form).find('#' + chunk + '-3').val();
-            var pin = jQuery(form).find('#' + chunk + '-4').val();
-            var password = jQuery(form).find('#' + chunk + '-5').val();
+            var meta_format = jQuery(form).find('#' + chunk + '-3').val();
+            var parent_id = jQuery(form).find('#' + chunk + '-4').val();
+            var username = jQuery(form).find('#' + chunk + '-5').val();
+            var pin = jQuery(form).find('#' + chunk + '-6').val();
+            var password = jQuery(form).find('#' + chunk + '-7').val();
             
             var postage = 10000;
             var change_address = saline.db.wallet.addresses[0].address;
@@ -2932,8 +2934,6 @@ var saline =
                             renderer+= JSON.stringify(meta);
                             renderer+= "'>";
                             renderer+= '<div class="oip4-renderer">OIP4</div></body><script src="/content/' + setup_files[saline.db.db.defaults.network].js + '" crossorigin="unsafe"></script></html>';
-                            
-                            console.info('renderer', renderer);
                             
                             var based_render = Buffer.from(renderer, 'utf8').toString('base64');
                             
@@ -3356,9 +3356,28 @@ var saline =
             var destination = jQuery(form).find('#' + inscribe + '-0').val();
             var file = false;
             var jmeta = jQuery(form).find('#' + inscribe + '-2').val();
-            var username = jQuery(form).find('#' + inscribe + '-3').val();
-            var pin = jQuery(form).find('#' + inscribe + '-4').val();
-            var password = jQuery(form).find('#' + inscribe + '-5').val();
+            var meta_format = jQuery(form).find('#' + inscribe + '-3').val();
+            var parent_id = jQuery(form).find('#' + inscribe + '-4').val();
+            var parent_location = jQuery(form).find('#' + inscribe + '-5').val();
+            var username = jQuery(form).find('#' + inscribe + '-6').val();
+            var pin = jQuery(form).find('#' + inscribe + '-7').val();
+            var password = jQuery(form).find('#' + inscribe + '-8').val();
+            
+            var parent_txid = false;
+            var parent_vout = 0;
+            if(parent_location)
+            {
+                try
+                {
+                    var locs = parent_location.split(':');
+                    if(locs.length == 2)
+                    {
+                        parent_txid = locs[0];
+                        parent_vout = locs[1];
+                    }
+                }
+                catch(e){}
+            }
             
             if(saline.db.browser === true)
             {
@@ -3453,6 +3472,7 @@ var saline =
                                                                 if
                                                                 (
                                                                     media_type.indexOf('text') > -1
+                                                                    || media_type.indexOf('json') > -1
                                                                 )
                                                                 {
                                                                     media_content = Buffer.from(media_content, 'base64').toString('utf8');
@@ -3463,7 +3483,11 @@ var saline =
                                                                     media_content: media_content,
                                                                     media_type: media_type,
                                                                     network: saline.db.db.defaults.network,
-                                                                    meta: inscription_meta
+                                                                    meta: inscription_meta,
+                                                                    meta_format: meta_format,
+                                                                    parent_txid: parent_txid,
+                                                                    parent_id: parent_id,
+                                                                    parent_vout: parent_vout
                                                                 },  function(commit)
                                                                 {
 
@@ -3482,10 +3506,13 @@ var saline =
                                                                             fees: commit.data.fees,
                                                                             network: saline.db.db.defaults.network,
                                                                             meta: inscription_meta,
-                                                                            recovery: recovered
+                                                                            meta_format: meta_format,
+                                                                            recovery: recovered,
+                                                                            parent_txid: parent_txid,
+                                                                            parent_id: parent_id,
+                                                                            parent_vout: parent_vout
                                                                         },  function(reveal)
                                                                         {
-
                                                                             if(reveal.success)
                                                                             {
                                                                                 var tweaked = false;
@@ -4288,37 +4315,51 @@ var saline =
             var limit = jQuery(button).attr('data-limit');
             if(type && tick && decimal && balance && reserve && amount && max)
             {
-                var contents = '<alert class="alert alert-block alert-info">';
-                contents+= '<small><strong>' + tick + '</strong> (' + type + ')</small>';
-                contents+= '<br /><small>Current Supply: ' + amount + '</small>';
-                contents+= '<br /><small>Maximum Supply: ' + max + '</small>';
-                if(remain)
+                ordit.sdk.tokens.get({
+                    address: saline.db.wallet.addresses[0].address,
+                    symbol: tick,
+                    transfers: true,
+                    network: saline.db.db.defaults.network
+                },  function(tokens)
                 {
-                    contents+= '<br /><small>Mintable: ' + remaining + '</small>';
-                }
-                contents+= '<hr>';
-                contents+= '<small><strong><small>THIS WALLET</small></strong></small>';
-                contents+= '<br /><br /><strong>Reserves:</strong> ' + reserve;
-                
-                if(reserves)
-                {
-                    contents+= ' <small><a href="#" class="btn btn-sm btn-outline-light btn-ordit-prepare-more-tokens" data-symbol="' + tick + '" data-limit="' + reserves +'" data-bs-toggle="modal" data-bs-target="#ordit-preptoken-modal" style="margin-top:-7px;"><small>prepare transfers</small></a></small>';
-                }
-                
-                contents+= '<br /><br /><strong>Transferable:</strong> ' + balance;
-                
-                if(transferable)
-                {
-                    var txs = [];
-                    for(t = 0; t < saline.db.wallet.inscriptions.length; t++)
+                    var contents = '<alert class="alert alert-block alert-info">';
+                    contents+= '<small><strong>' + tick + '</strong> (' + type + ')</small>';
+                    contents+= '<br /><small>Current Supply: ' + amount + '</small>';
+                    contents+= '<br /><small>Maximum Supply: ' + max + '</small>';
+                    if(remain)
                     {
-                        var tx = saline.db.wallet.inscriptions[t];
-                        
+                        contents+= '<br /><small>Mintable: ' + remaining + '</small>';
                     }
-                }
-                
-                contents+= '</alert>';
-                saline.modal(tick + ' Info', contents);
+                    contents+= '<hr>';
+                    contents+= '<small><strong><small>THIS WALLET</small></strong></small>';
+                    contents+= '<br /><br /><strong>Reserves:</strong> ' + reserve;
+
+                    if(reserves)
+                    {
+                        contents+= ' <small><a href="#" class="btn btn-sm btn-outline-light btn-ordit-prepare-more-tokens" data-symbol="' + tick + '" data-limit="' + reserves +'" data-bs-toggle="modal" data-bs-target="#ordit-preptoken-modal" style="margin-top:-7px;"><small>prepare transfers</small></a></small>';
+                    }
+
+                    contents+= '<br /><br /><strong>Transferable:</strong> ' + balance;
+                    contents+= '</alert>';
+                    
+                    if
+                    (
+                        tokens.success 
+                        && typeof tokens.data == 'object' 
+                        && typeof tokens.data.transferables == 'object'
+                    )
+                    {
+                        for(t = 0; t < tokens.data.transferables.length; t++)
+                        {
+                            var token = tokens.data.transferables[t];
+                            contents+= '<hr><alert class="alert alert-block alert-info">';
+                            contents+= '<small>Amount: ' + ordit.sdk.utils.float(token.amount, parseInt(decimal)) + ' ' + token.tick + ' <small><a href="#" class="btn btn-sm btn-primary btn-ordit-send-sat" data-unspent="' + token.from.txid + '" style="margin: -5px 0 0 5px;"><small>SEND</small></a></small></small>';
+                            contents+= '</alert>';
+                        }
+                    }
+                    
+                    saline.modal(tick + ' Info', contents);
+                })
             }
         });
         jQuery('body').on('click', '.btn-oip-meta', function(e)
@@ -4439,6 +4480,7 @@ var saline =
             }
             if(unspent)
             {
+                unspent.value = ordit.sdk.utils.float(unspent.sats, 18);
                 var results = '<alert class="alert alert-block alert-info"><strong>CURRENT SEND FUNCTIONALITY ONLY SUPPORTS SINGLE UNSPENTS, WHICH MAY CONTAIN MULTIPLE ORDINALS AND INSCRIPTIONS</strong><hr><small>Value: <strong>' + unspent.value + ' BTC</strong></small></alert>';
                 
                 if(typeof unspent.ordinals == 'undefined')
@@ -5756,6 +5798,35 @@ var load_saline = function()
                     type: 'text',
                     label: 'Meta',
                     placeholder: 'Optional JSON data (OIP-1) ...'
+                },
+                {
+                    type: 'select',
+                    label: 'Format',
+                    choices: 
+                    [
+                        {
+                            id: '',
+                            text: '-- Select Meta Format --'
+                        },
+                        {
+                            id: 'oip1',
+                            text: 'OIP-01'
+                        },
+                        {
+                            id: 'op5',
+                            text: 'OP5'
+                        }
+                    ]
+                },
+                {
+                    type: 'text',
+                    label: 'Parent ID',
+                    placeholder: 'Parent ID (not location) ...'
+                },
+                {
+                    type: 'text',
+                    label: 'Parent Out',
+                    placeholder: 'Location of parent ...'
                 },
                 {
                     type: 'text',

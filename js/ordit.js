@@ -16,7 +16,7 @@ exports.sdk =
 {
     config:
     {
-        version: '0.0.0.13',
+        version: '0.0.0.14',
         apis:
         {
             mainnet:
@@ -642,7 +642,6 @@ exports.sdk =
             {
                 var psbt = false;
                 var net_obj = ordit.sdk.network(options.network);
-                console.info('psbt.optionsX', options);
                 try
                 {
                     psbt = bitcointp.Psbt.fromHex(options.psbt, { network: net_obj});
@@ -653,7 +652,6 @@ exports.sdk =
                 {
                     var finalized_hex = psbt.finalizeAllInputs().toHex();
                     psbt = bitcointp.Psbt.fromHex(finalized_hex, { network: net_obj});
-                    console.info('psbt.finalized', psbt);
                 }
                 catch(final_error)
                 {
@@ -1243,15 +1241,16 @@ exports.sdk =
             {
                 symbol: false,
                 address: false,
+                transfers: true,
                 network: 'testnet'
             };
+            Object.assign(options, params);
             var results = 
             {
                 success: false,
                 message: 'Invalid options for apis.brc20',
-                data: false
+                data: options
             }
-            Object.assign(options, params);
             if
             (
                 (
@@ -1271,7 +1270,24 @@ exports.sdk =
                     {
                         method: 'Brc20.Address.GetTokens',
                         network: options.network,
-                        data: { address: options.address, include: ["token"] }
+                        data: { address: options.address, include: ["token"] },
+                        pagination: 
+                        {
+                            limit: 25
+                        }
+                    }
+                    if(options.transfers && options.symbol)
+                    {
+                        brc20_request = 
+                        {
+                            method: 'Brc20.Address.GetTransferables',
+                            network: options.network,
+                            data: { address: options.address, tick: options.symbol, include: ["token"] },
+                            pagination: 
+                            {
+                                limit: 25
+                            }
+                        }
                     }
                 }
                 else
@@ -1293,62 +1309,69 @@ exports.sdk =
                         
                         var these_tokens = brc20.rdata;
                         
-                        if
-                        (
-                            typeof options.address == 'string'
-                            && typeof options.symbol == 'string'
-                        )
+                        if(options.transfers && options.symbol && options.address)
                         {
-                            var original_tokens = JSON.parse(JSON.stringify(these_tokens));
-                            these_tokens = [];
-                            for(t = 0 ; t < original_tokens.length; t++)
-                            {
-                                if(original_tokens[t].tick == options.symbol)
-                                {
-                                    these_tokens.push(original_tokens[t]);
-                                }
-                            }
+                            results.data = these_tokens;
+                            callback(results);
                         }
-                        
-                        for(t = 0 ; t < these_tokens.length; t++)
+                        else
                         {
-                            
-                            var decimal = 0;
-                            these_tokens[t].type = 'BRC20';
                             if
                             (
-                                typeof these_tokens[t].token == 'object'
+                                typeof options.address == 'string'
+                                && typeof options.symbol == 'string'
                             )
                             {
-                                if(typeof these_tokens[t].token.decimal != 'undefined')
+                                var original_tokens = JSON.parse(JSON.stringify(these_tokens));
+                                these_tokens = [];
+                                for(t = 0 ; t < original_tokens.length; t++)
                                 {
-                                    decimal = these_tokens[t].token.decimal;
+                                    if(original_tokens[t].tick == options.symbol)
+                                    {
+                                        these_tokens.push(original_tokens[t]);
+                                    }
                                 }
-                                else
-                                {
-                                    these_tokens[t].token.decimal = decimal;
-                                }
-                                
-                                these_tokens[t].display = 
-                                {
-                                    available: ordit.sdk.utils.float(these_tokens[t].available, decimal),
-                                    total: ordit.sdk.utils.float(these_tokens[t].total, decimal),
-                                    transferable: ordit.sdk.utils.float(these_tokens[t].transferable, decimal)
-                                }
-                                
-                                var remaining = these_tokens[t].token.max - these_tokens[t].token.amount;
-                                these_tokens[t].token.remaining = remaining;
-                                
-                                these_tokens[t].display.max = ordit.sdk.utils.float(these_tokens[t].token.max, decimal);
-                                
-                                these_tokens[t].display.amount = ordit.sdk.utils.float(these_tokens[t].token.amount, decimal);
-                                
-                                these_tokens[t].display.limit = ordit.sdk.utils.float(these_tokens[t].token.limit, decimal);
-                                these_tokens[t].display.remaining = ordit.sdk.utils.float(these_tokens[t].token.remaining, decimal);
                             }
+
+                            for(t = 0 ; t < these_tokens.length; t++)
+                            {
+                                var decimal = 0;
+                                these_tokens[t].type = 'BRC20';
+                                if
+                                (
+                                    typeof these_tokens[t].token == 'object'
+                                )
+                                {
+                                    if(typeof these_tokens[t].token.decimal != 'undefined')
+                                    {
+                                        decimal = these_tokens[t].token.decimal;
+                                    }
+                                    else
+                                    {
+                                        these_tokens[t].token.decimal = decimal;
+                                    }
+
+                                    these_tokens[t].display = 
+                                    {
+                                        available: ordit.sdk.utils.float(these_tokens[t].available, decimal),
+                                        total: ordit.sdk.utils.float(these_tokens[t].total, decimal),
+                                        transferable: ordit.sdk.utils.float(these_tokens[t].transferable, decimal)
+                                    }
+
+                                    var remaining = these_tokens[t].token.max - these_tokens[t].token.amount;
+                                    these_tokens[t].token.remaining = remaining;
+
+                                    these_tokens[t].display.max = ordit.sdk.utils.float(these_tokens[t].token.max, decimal);
+
+                                    these_tokens[t].display.amount = ordit.sdk.utils.float(these_tokens[t].token.amount, decimal);
+
+                                    these_tokens[t].display.limit = ordit.sdk.utils.float(these_tokens[t].token.limit, decimal);
+                                    these_tokens[t].display.remaining = ordit.sdk.utils.float(these_tokens[t].token.remaining, decimal);
+                                }
+                            }
+                            results.data = these_tokens;
+                            callback(results);
                         }
-                        
-                        results.data = these_tokens;
                     }
                     else
                     {
@@ -1357,8 +1380,8 @@ exports.sdk =
                         {
                             results.message = brc20.message;
                         }
+                        callback(results);
                     }
-                    callback(results);
                 });
             }
             else if(typeof callback == 'function')
@@ -3486,12 +3509,16 @@ exports.sdk =
                                         ||
                                         (
                                             test_auto_tweaking_for_dummies
-                                            && i == 1
-                                            && psbt.data.globalMap.unsignedTx.tx.ins.length == 2
-                                            && psbt.data.globalMap.unsignedTx.tx.outs.length == 2
-                                            && psbt.data.inputs.length == 2
+                                            && 
+                                            (
+                                                i == 1 || i == 2
+                                            )
+                                            && psbt.data.globalMap.unsignedTx.tx.ins.length == 3
+                                            //&& psbt.data.globalMap.unsignedTx.tx.outs.length == 2
+                                            && psbt.data.inputs.length == 3
                                             && typeof psbt.data.inputs[0].tapLeafScript != 'undefined'
                                             && typeof psbt.data.inputs[1].tapLeafScript == 'undefined'
+                                            && typeof psbt.data.inputs[2].tapLeafScript == 'undefined'
                                         )
                                     )
                                     {
@@ -5406,14 +5433,24 @@ exports.sdk =
                 media_content: false,
                 sats_per_byte: 10,
                 media_type: 'text/plain;charset=utf-8',
+                meta_format: 'oip1',
                 network: 'testnet',
-                meta: false
+                meta: false,
+                parent_txid: false,
+                parent_id: false,
+                parent_vout: 0
             };
             Object.assign(options, params);
             if
             (
                 options.network && options.media_type && options.media_content
                 && options.sats_per_byte
+                &&
+                (
+                    !options.meta
+                    ||
+                    (options.meta_format && options.meta)
+                )
                 && typeof callback == 'function'
                 && 
                 (
@@ -5595,16 +5632,29 @@ exports.sdk =
                 fees: 10,
                 postage: 10000,
                 media_type: 'text/plain;charset=utf-8',
+                meta_format: 'oip1',
                 network: 'testnet',
                 meta: false,
                 recovery: false,
-                dummies: false
+                dummies: false,
+                parent_txid: false,
+                parent_id: false,
+                parent_vout: 0
             };
             Object.assign(options, params);
             if
             (
                 options.network && options.media_type && options.media_content
                 && options.destination && options.fees && options.postage
+                && 
+                (
+                    !options.meta
+                    ||
+                    (
+                        options.meta_format
+                        && options.meta
+                    )
+                )
                 && typeof callback == 'function'
                 && 
                 (
@@ -5819,12 +5869,19 @@ exports.sdk =
                                     var sats_per_byte = 10;
                                     var sats_in = 0;
                                     
+                                    var total_needed_to_reveal = options.postage + fees_for_witness_data;
+                                    
+                                    if(options.parent_id)
+                                    {
+                                        total_needed_to_reveal = options.postage;
+                                    }
+                                    
                                     for(u = 0; u < unspents.length; u++)
                                     {   
                                         if
                                         (
                                             (
-                                                unspents[u].sats >= (options.postage + fees_for_witness_data)
+                                                unspents[u].sats >= total_needed_to_reveal
                                                 && unspents[u].safeToSpend === true
                                             )
                                             ||
@@ -5842,10 +5899,6 @@ exports.sdk =
                                                 got_suitable_unspent[0] = unspents[u];
                                             }
                                         }
-                                        else
-                                        {
-                                            spare_unspents.push(unspents[u]);
-                                        }
                                     }
                                     
                                     if(got_suitable_unspent.length > 0)
@@ -5858,63 +5911,77 @@ exports.sdk =
                                         }
                                         
                                         var change = sats_in - fees;
+                                        var parent_first = false;
                                         
                                         var psbt = new bitcointp.Psbt({network: net_obj});
                                         try
                                         {
-                                            jQuery.each(got_suitable_unspent, function(su)
-                                            {
-                                                var gsu = got_suitable_unspent[su];
-                                                var witness_index = 0;
-                                                if(options.recovery)
-                                                {
-                                                    witness_index = 1;
-                                                }
-                                                psbt.addInput({
-                                                    hash: gsu.txid,
-                                                    index: parseInt(gsu.n),
-                                                    tapInternalKey: full_keys.xkey,
-                                                    witnessUtxo:
-                                                    {
-                                                        script: inscribe.output, 
-                                                        value: parseInt(gsu.sats)
-                                                    },
-                                                    tapLeafScript: [
-                                                        {
-                                                            leafVersion: redeem_script.redeemVersion,
-                                                            script: redeem_script.output,
-                                                            controlBlock: inscribe.witness[inscribe.witness.length - 1]
-                                                        }
-                                                    ]
-                                                });
-                                            });
 
-                                            if(!options.recovery)
+                                            if
+                                            (
+                                                !options.recovery 
+                                                && 
+                                                (
+                                                    !options.parent_id
+                                                    ||
+                                                    (
+                                                        options.parent_id
+                                                        && !parent_first
+                                                    )
+                                                )
+                                            )
                                             {
+                                                jQuery.each(got_suitable_unspent, function(su)
+                                                {
+                                                    var gsu = got_suitable_unspent[su];
+                                                    var witness_index = 0;
+                                                    if(options.recovery)
+                                                    {
+                                                        witness_index = 1;
+                                                    }
+                                                    psbt.addInput({
+                                                        hash: gsu.txid,
+                                                        index: parseInt(gsu.n),
+                                                        tapInternalKey: full_keys.xkey,
+                                                        witnessUtxo:
+                                                        {
+                                                            script: inscribe.output, 
+                                                            value: parseInt(gsu.sats)
+                                                        },
+                                                        tapLeafScript: [
+                                                            {
+                                                                leafVersion: redeem_script.redeemVersion,
+                                                                script: redeem_script.output,
+                                                                controlBlock: inscribe.witness[inscribe.witness.length - 1]
+                                                            }
+                                                        ]
+                                                    });
+                                                });
+
                                                 psbt.addOutput({
                                                     address: options.destination, 
                                                     value: options.postage
                                                 });
-                                            }
 
-                                            if(change > 600)
-                                            {
-                                                var change_address = inscribe.address;
-                                                if
-                                                (
-                                                    typeof options.change_address != 'undefined'
-                                                    && options.change_address
-                                                )
+                                                if(change > 600)
                                                 {
-                                                    change_address = options.change_address;
+                                                    var change_address = inscribe.address;
+                                                    if
+                                                    (
+                                                        typeof options.change_address != 'undefined'
+                                                        && options.change_address
+                                                    )
+                                                    {
+                                                        change_address = options.change_address;
+                                                    }
+                                                    psbt.addOutput({
+                                                        address: change_address, 
+                                                        value: change
+                                                    });
                                                 }
-                                                psbt.addOutput({
-                                                    address: change_address, 
-                                                    value: change
-                                                });
                                             }
                                             
-                                            if(options.dummies === true)
+                                            if(options.parent_id)
                                             {
                                                 // Extra in and extra out ...
                                                 ordit.sdk.balance.get({
@@ -5926,18 +5993,88 @@ exports.sdk =
                                                     if(w.success)
                                                     {
                                                         var spendables = w.data.spendables;
+                                                        
+                                                        if(typeof options.parent_id)
+                                                        {
+                                                            spendables = spendables = w.data.addresses[0].unspents;
+                                                        }
+                                                        
                                                         if(spendables.length > 0)
                                                         {
-                                                            var suitable_spendable = false;
+                                                            var suitable_spendable = false; // parent
+                                                            var suitable_dummy = false; // fees
+                                                            
                                                             for(ss = 0; ss < spendables.length; ss++)
                                                             {
-                                                                if(spendables[ss].sats > 599)
+                                                                if
+                                                                (
+                                                                    options.parent_txid == spendables[ss].txid
+                                                                    && parseInt(options.parent_vout) == spendables[ss].n
+                                                                    && !suitable_spendable
+                                                                    && spendables[ss].sats > 599
+                                                                )
                                                                 {
                                                                     suitable_spendable = spendables[ss];
                                                                 }
+                                                                else if
+                                                                (
+                                                                    (
+                                                                        !options.parent_id
+                                                                        && spendables[ss].sats > 599
+                                                                    )
+                                                                    ||
+                                                                    (
+                                                                        options.parent_id
+                                                                        && spendables[ss].sats == fees_for_witness_data
+                                                                        && spendables[ss].safeToSpend
+                                                                    )
+                                                                )
+                                                                {
+                                                                    if(options.parent_id)
+                                                                    {
+                                                                        suitable_dummy = spendables[ss];
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        suitable_spendable = spendables[ss];
+                                                                    }
+                                                                }
                                                             }
-                                                            if(suitable_spendable)
+                                                            if
+                                                            (
+                                                                (
+                                                                    !options.parent_id
+                                                                    && suitable_spendable
+                                                                )
+                                                                ||
+                                                                (
+                                                                    options.parent_id
+                                                                    && suitable_spendable
+                                                                    && suitable_dummy
+                                                                )
+                                                            )
                                                             {
+                                                                var dummy_txid = 'N/A';
+                                                                if(suitable_dummy)
+                                                                {
+                                                                    dummy_txid = suitable_dummy.txid;
+                                                                }
+                                                                ordit.sdk.apis.transaction({
+                                                                    txid: dummy_txid,
+                                                                    network: options.network
+                                                                }, function(dummy_tx)
+                                                                {   
+                                                                    var dum_tx = false;
+                                                                    if
+                                                                    (
+                                                                        options.parent_id 
+                                                                        && dummy_tx.success
+                                                                    )
+                                                                    {
+                                                                        dum_tx = dummy_tx.data;
+                                                                    }
+                                                                
+                                                                
                                                                 ordit.sdk.apis.transaction({
                                                                     txid: suitable_spendable.txid,
                                                                     network: options.network
@@ -5962,10 +6099,111 @@ exports.sdk =
                                                                             value: sats
                                                                         };
                                                                         psbt.addInput(d);
+                                                                        
                                                                         psbt.addOutput({
-                                                                            address: dummy.address,
+                                                                            address: options.destination, 
                                                                             value: sats
                                                                         });
+                                                                        
+                                                                        if(options.parent_id)
+                                                                        {
+                                                                            // Need dummy TX info?
+                                                                            
+                                                                            var draw = bitcointp.Transaction.fromHex(dum_tx.hex);
+                                                                            var dt = 
+                                                                            {
+                                                                                hash: dum_tx.txid,
+                                                                                index: parseInt(suitable_dummy.n),
+                                                                                nonWitnessUtxo: Buffer.from(dum_tx.hex, 'hex'),
+                                                                                sequence: 0xfffffffd // Needs to be at least 2 below max int value to be RBF
+                                                                            };
+                                                                            var dsats = Math.round(parseFloat(dum_tx.vout[suitable_dummy.n].value) * (10 ** 8));
+
+                                                                            dt.tapInternalKey = Buffer.from(full_keys.xkey, 'hex');
+                                                                            dt.witnessUtxo = 
+                                                                            {
+                                                                                script: dummy.output,
+                                                                                value: dsats
+                                                                            };
+                                                                            psbt.addInput(dt);
+                                                                            
+                                                                            var dchange = total_needed_to_reveal - dsats;
+                                                                            
+                                                                            if(dchange > 600)
+                                                                            {
+                                                                                var change_address = options.destination;
+                                                                                if
+                                                                                (
+                                                                                    typeof options.change_address != 'undefined'
+                                                                                    && options.change_address
+                                                                                )
+                                                                                {
+                                                                                    change_address = options.change_address;
+                                                                                }
+                                                                                psbt.addOutput({
+                                                                                    address: change_address, 
+                                                                                    value: dchange
+                                                                                });
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        if
+                                                                        (
+                                                                            options.parent_id 
+                                                                            && parent_first
+                                                                        )
+                                                                        {
+                                                                            jQuery.each
+                                                                            (
+                                                                                got_suitable_unspent, function(su)
+                                                                            {
+                                                                                var gsu = got_suitable_unspent[su];
+                                                                                var witness_index = 0;
+                                                                                if(options.recovery)
+                                                                                {
+                                                                                    witness_index = 1;
+                                                                                }
+                                                                                psbt.addInput({
+                                                                                    hash: gsu.txid,
+                                                                                    index: parseInt(gsu.n),
+                                                                                    tapInternalKey: full_keys.xkey,
+                                                                                    witnessUtxo:
+                                                                                    {
+                                                                                        script: inscribe.output, 
+                                                                                        value: parseInt(gsu.sats)
+                                                                                    },
+                                                                                    tapLeafScript: [
+                                                                                        {
+                                                                                            leafVersion: redeem_script.redeemVersion,
+                                                                                            script: redeem_script.output,
+                                                                                            controlBlock: inscribe.witness[inscribe.witness.length - 1]
+                                                                                        }
+                                                                                    ]
+                                                                                });
+                                                                            });
+
+                                                                            psbt.addOutput({
+                                                                                address: options.destination, 
+                                                                                value: options.postage
+                                                                            });
+
+                                                                            if(change > 600)
+                                                                            {
+                                                                                var change_address = inscribe.address;
+                                                                                if
+                                                                                (
+                                                                                    typeof options.change_address != 'undefined'
+                                                                                    && options.change_address
+                                                                                )
+                                                                                {
+                                                                                    change_address = options.change_address;
+                                                                                }
+                                                                                psbt.addOutput({
+                                                                                    address: change_address, 
+                                                                                    value: change
+                                                                                });
+                                                                            }
+                                                                        }
                                                                         
                                                                         results.success = true;
                                                                         results.message = 'Unsigned PSBT attached to data';
@@ -5982,6 +6220,8 @@ exports.sdk =
                                                                         callback(results);
                                                                     }
                                                                 });
+                                                                    
+                                                                }); // dummy
                                                             }
                                                             else
                                                             {
@@ -6094,11 +6334,26 @@ exports.sdk =
                 xkey: false,
                 media_content: false,
                 media_type: 'text/plain;charset=utf-8',
-                meta: false
+                meta_format: 'oip1',
+                meta: false,
+                parent_id: false,
+                parent_vout: 0
             };
             var witness = false;
             Object.assign(options, params);
-            if(options.media_type && options.media_content && options.xkey)
+            if
+            (
+                options.media_type && options.media_content && options.xkey
+                && 
+                (
+                    !options.meta
+                    ||
+                    (
+                        options.meta
+                        && options.meta_format
+                    )
+                )
+            )
             {
                 try
                 {
@@ -6120,7 +6375,20 @@ exports.sdk =
                     
                     if(typeof options.meta == 'object')
                     {
-                        meta_chunks = chunk_content(JSON.stringify(options.meta));
+                        var cmeta = JSON.stringify(options.meta);
+                        if(options.meta_format == 'op5')
+                        {
+                            var encoded = CBOR.encode(options.meta);
+                            function toHexString(byteArray) {
+                              var s = '';
+                              byteArray.forEach(function(byte) {
+                                s += ('0' + (byte & 0xFF).toString(16)).slice(-2);
+                              });
+                              return s;
+                            }
+                            cmeta = toHexString(Array.from(new Uint8Array(encoded)));
+                        }
+                        meta_chunks = chunk_content(cmeta);
                     }
                     
                     var op_push = function(str, t = 'utf8')
@@ -6141,9 +6409,49 @@ exports.sdk =
                         the_scripts.push(bitcointp.opcodes.OP_FALSE);
                         the_scripts.push(bitcointp.opcodes.OP_IF);
                         the_scripts.push(op_push('ord'));
+                        
                         the_scripts.push(1);
                         the_scripts.push(1);
+                        //the_scripts.push(bitcointp.opcodes.OP_1);
+                        
                         the_scripts.push(op_push(options.media_type)); // text/plain;charset=utf-8
+                        
+                        if
+                        (
+                            typeof options.parent_id != 'undefined'
+                            && options.parent_id
+                        )
+                        {
+                            // OP3
+                            the_scripts.push(1);
+                            the_scripts.push(3);
+                            // TXID + INDEX where 255 = ff (var num = 255; num.toString(16))
+                            var this_index = '';
+                            if(parseInt(options.parent_vout))
+                            {
+                                this_index = parseInt(options.parent_vout).toString('16');
+                            }
+                            var this_txid = Buffer.from(options.parent_id, 'hex').reverse().toString('hex');
+                            
+                            the_scripts.push(Buffer.from(this_txid, 'hex'));
+                        }
+                        
+                        if
+                        (
+                            typeof options.meta == 'object' 
+                            && typeof meta_chunks == 'object'
+                            && options.meta_format == 'op5'
+                        )
+                        {
+                            // OP5
+                            for(mc = 0; mc < meta_chunks.length; mc++)
+                            {
+                                the_scripts.push(1);
+                                the_scripts.push(5);
+                                the_scripts.push(op_push(meta_chunks[mc], 'hex'));
+                            }
+                        }
+                        
                         the_scripts.push(bitcointp.opcodes.OP_0);
 
                         for(c = 0; c < chunks.length; c++)
@@ -6155,21 +6463,21 @@ exports.sdk =
                                 options.media_type.indexOf('text') < 0 
                                 && options.media_type.indexOf('json') < 0
                                 )
-                                ||
-                                (
-                                    options.media_type.indexOf('css') > -1
-                                    //|| options.media_type.indexOf('html') > -1
-                                )
                             )
                             {
                                 encode_type = 'base64';
                             }
                             the_scripts.push(op_push(chunks[c], encode_type));
                         }
-
+                        
                         the_scripts.push(bitcointp.opcodes.OP_ENDIF);
 
-                        if(typeof options.meta == 'object' && typeof meta_chunks == 'object')
+                        if
+                        (
+                            typeof options.meta == 'object' 
+                            && typeof meta_chunks == 'object'
+                            && options.meta_format == 'oip1'
+                        )
                         {
                             the_scripts.push(bitcointp.opcodes.OP_FALSE);
                             the_scripts.push(bitcointp.opcodes.OP_IF);
@@ -6183,13 +6491,12 @@ exports.sdk =
                             {
                                 the_scripts.push(op_push(meta_chunks[mc]));
                             }
-                            the_scripts.push(op_push(meta_chunks));
+                            //the_scripts.push(op_push(meta_chunks));
 
                             the_scripts.push(bitcointp.opcodes.OP_ENDIF);
                         }
                         
                     }
-                    
                     witness = bitcointp.script.compile(the_scripts);
                 }
                 catch(e){}
@@ -6918,6 +7225,7 @@ exports.sdk =
             var options = 
             {
                 symbol: false, // MUST be 4 characters
+                address: false, // optional for lookup
                 network: 'testnet'
             };
             Object.assign(options, params);

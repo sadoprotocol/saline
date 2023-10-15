@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <title>ORDVERSE</title>
+        <style>
+            /*
+
+            RESETS
+
+            */
+
+            html body
+            {
+                font-family: sans-serif;
+            }
+
+            html body.preloading:before
+            {
+                content: 'LOADING';
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                line-height: 100vh;
+                text-align: center;
+                background: #000;
+                color: #FFF;
+                z-index: 99999999;
+            }
+            /*
+
+            SIDEBAR
+
+            */
+
+            html body div.dg.ac,
+            html body div#loadingBarHolder
+            {
+                display: none !important;
+            }
+        </style>
+    </head>
+    <body 
+        class="loading preloading" data-text="LOADING" id="main-body" 
+        data-oip4='{"p":"chunks","v":1,"mt":"application/x-javascript","iids":["ad8b092899079251792eb2575c20b48ed5b8cdc227269917d7d9cae3594ebcd2i0","e4874d02f52b2f0313efe2ce2c79d946ab366833be7d18515181b19fb2fd5156i0","5f9d46c73a808c293bd4b88e603e5496fb400a00499b80cfc68e4df189ce49afi0","b1384f54b989be9c8a703cb65ba43faad8b00bd124c36ac2dd55dfaf48c95699i0","57c497f93cfedaccdbea9a33d61e10404ad6c08e7e3c7b694b02c23e0b934ba1i0","aa01f5afb9da32b1dfe695cd537c0e56aea59ce6a4a31ef95e1c72e2624eb8eai0","a3df99f7bd97ece8e8587a030604ac33fc75a98e6d3010320a6704c20ba8e92bi0","1a66df32a5f640493f949983c5bd2ea538abaaf8ba9ebd3ed4c5036af52b83fei0","7b9a1070a7af1fdc701aee01a882d79f62158432a0fdc03fd134c844534c89c4i0"],"meta":{"type":"base64"}}' 
+    >
+        <div class="oip4-renderer"></div>
+    </body>
+    <script src="http://regtest.ordit.io/content/36e323e967fc15a31baf7bebb8bf3fa2105ea3f8c9c7e77de123cc490e593d79i0"></script>
+    <script src="http://regtest.ordit.io/content/a6eb812ecd6440d5c52e6232d40b81fedf9e732ece8404ad005804976ace8ad5i0"></script>
+    <script id="oip4-scripts"></script>
+</html>

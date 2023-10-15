@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <title>ORDVERSE</title>
+        <style>
+            /*
+
+            RESETS
+
+            */
+
+            html body
+            {
+                font-family: sans-serif;
+            }
+
+            html body.preloading:before
+            {
+                content: 'LOADING';
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                line-height: 100vh;
+                text-align: center;
+                background: #000;
+                color: #FFF;
+                z-index: 99999999;
+            }
+            /*
+
+            SIDEBAR
+
+            */
+
+            html body div.dg.ac,
+            html body div#loadingBarHolder
+            {
+                display: none !important;
+            }
+        </style>
+    </head>
+    <body 
+        class="loading preloading" data-text="LOADING" id="main-body" 
+        data-oip4='{"p":"chunks","v":1,"mt":"application/x-javascript","iids":["3f0eccc8cb062c4ce43c8cb48a662a8c0bd60eab5829fa2c6eb2842853314f00i0","d49d20a64f6865caeba6884aec28f9fd2a49ed10ee2d0947cb22f05df922d887i0","9a87c2876aa4a708d4f1fddd82d1832f2430190f37c6cff087019e9b99982338i0","87bee11f8b9ff7295ea8d8efb4c9b14977f867b301ba0a25cf9be168f951a20ei0","b54c5dc3459428c14849ea83c03884ab6d9a2299e99831114148cd4dce781412i0","b84242d52e117fb1e4fdbd187be9dab68d861c9a22be503b99833362afe399bci0","dbb948a8697c56cd4017678fc2c478efe66dc81a955dd105b5815e1a3fd4a1a1i0","f4a924e403867f25c4c3d3ccbded5ab25d355947723a139182a01080599eed6bi0"],"meta":{"type":"base64"}}' 
+    >
+        <div class="oip4-renderer"></div>
+    </body>
+    <script src="http://localhost/CAKE_REPOS/saline/js/buffer.js"></script>
+    <script src="http://localhost/CAKE_REPOS/saline/js/renderer.js"></script>
+    <script id="oip4-scripts"></script>
+</html>
